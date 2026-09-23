@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import type { Stock } from "../types";
-import { formatCurrencyPrecise, formatShares, initials } from "../lib/format";
+import { formatCurrencyPrecise, formatShares } from "../lib/format";
 import { Sparkline } from "./Sparkline";
+import { StockLogo } from "./StockLogo";
 import { getPriceHistory } from "../data/priceHistory";
 import { usePortfolio } from "../context/PortfolioContext";
 
@@ -22,12 +23,7 @@ export function StockRow({ stock, subtitle }: StockRowProps) {
       to={`/stock/${stock.symbol}`}
       className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2 active:bg-surface-2 transition-colors rounded-xl"
     >
-      <div
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
-        style={{ backgroundColor: stock.color }}
-      >
-        {initials(stock.symbol)}
-      </div>
+      <StockLogo symbol={stock.symbol} name={stock.name} fallbackColor={stock.color} />
       <div className="min-w-0 flex-1">
         <div className="truncate text-[15px] font-medium text-ink">
           {stock.symbol}
