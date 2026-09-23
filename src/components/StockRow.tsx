@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { motion } from "motion/react";
 import type { Stock } from "../types";
 import { formatCurrencyPrecise, formatShares } from "../lib/format";
 import { Sparkline } from "./Sparkline";
@@ -24,34 +25,37 @@ export function StockRow({ stock: baseStock, subtitle }: StockRowProps) {
   const history = getPriceHistory(stock.symbol, "1D", liveQuote?.price);
 
   return (
-    <Link
-      to={`/stock/${stock.symbol}`}
-      className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2 active:bg-surface-2 transition-colors rounded-xl"
-    >
-      <StockLogo symbol={stock.symbol} name={stock.name} fallbackColor={stock.color} />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5 text-[15px] font-medium text-ink">
-          <span className="truncate">{stock.symbol}</span>
-          <LiveDot symbol={stock.symbol} />
+    <Link to={`/stock/${stock.symbol}`} className="block rounded-xl">
+      <motion.div
+        className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2 transition-colors rounded-xl"
+        whileTap={{ scale: 0.98, backgroundColor: "var(--color-surface-2)" }}
+        transition={{ duration: 0.12 }}
+      >
+        <StockLogo symbol={stock.symbol} name={stock.name} fallbackColor={stock.color} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 text-[15px] font-medium text-ink">
+            <span className="truncate">{stock.symbol}</span>
+            <LiveDot symbol={stock.symbol} />
+          </div>
+          <div className="truncate text-[13px] text-ink-faint">
+            {subtitle ?? (holding ? `${formatShares(holding.shares)} shares` : stock.name)}
+          </div>
         </div>
-        <div className="truncate text-[13px] text-ink-faint">
-          {subtitle ?? (holding ? `${formatShares(holding.shares)} shares` : stock.name)}
+        <div className="shrink-0">
+          <Sparkline data={history} positive={positive} width={64} height={28} />
         </div>
-      </div>
-      <div className="shrink-0">
-        <Sparkline data={history} positive={positive} width={64} height={28} />
-      </div>
-      <div className="w-24 shrink-0 text-right">
-        <div className="text-[15px] font-medium tabular-nums text-ink">
-          {formatCurrencyPrecise(stock.price)}
+        <div className="w-24 shrink-0 text-right">
+          <div className="text-[15px] font-medium tabular-nums text-ink">
+            {formatCurrencyPrecise(stock.price)}
+          </div>
+          <div
+            className={`text-[13px] tabular-nums font-medium ${positive ? "text-up" : "text-down"}`}
+          >
+            {positive ? "+" : ""}
+            {((change / stock.prevClose) * 100).toFixed(2)}%
+          </div>
         </div>
-        <div
-          className={`text-[13px] tabular-nums font-medium ${positive ? "text-up" : "text-down"}`}
-        >
-          {positive ? "+" : ""}
-          {((change / stock.prevClose) * 100).toFixed(2)}%
-        </div>
-      </div>
+      </motion.div>
     </Link>
   );
 }

@@ -14,6 +14,7 @@
     "@icons-pack/react-simple-icons": "^13.15.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.47.0",
+    "motion": "^13.4.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.4",

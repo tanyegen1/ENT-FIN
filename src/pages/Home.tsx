@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "motion/react";
 import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { usePortfolio } from "../context/PortfolioContext";
 import { getStock } from "../data/stocks";
@@ -91,12 +92,20 @@ export function Home() {
           </div>
         </div>
         <div className="flex gap-2">
-          <button className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-3 text-ink hover:brightness-125 cursor-pointer">
+          <motion.button
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-3 text-ink hover:brightness-125 cursor-pointer"
+            whileTap={{ scale: 0.88 }}
+            transition={{ duration: 0.12 }}
+          >
             <ArrowDownToLine size={17} />
-          </button>
-          <button className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-3 text-ink hover:brightness-125 cursor-pointer">
+          </motion.button>
+          <motion.button
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-3 text-ink hover:brightness-125 cursor-pointer"
+            whileTap={{ scale: 0.88 }}
+            transition={{ duration: 0.12 }}
+          >
             <ArrowUpFromLine size={17} />
-          </button>
+          </motion.button>
         </div>
       </div>
 

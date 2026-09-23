@@ -1,10 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { X, Check } from "lucide-react";
 import clsx from "clsx";
 import type { Stock } from "../types";
 import { Keypad } from "./Keypad";
 import { usePortfolio } from "../context/PortfolioContext";
 import { formatCurrency, formatCurrencyPrecise, formatShares } from "../lib/format";
+
+const SHEET_SPRING = { type: "spring", stiffness: 420, damping: 38 } as const;
+const STEP_TRANSITION = {
+  initial: { opacity: 0, x: 16 },
+  animate: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: -16 },
+  transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] as const },
+};
 
 type Side = "buy" | "sell";
 type Mode = "dollars" | "shares";
@@ -77,11 +86,21 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center lg:items-center">
-      <div
+      <motion.div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={onClose}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
       />
-      <div className="relative z-10 flex max-h-[92svh] w-full max-w-[480px] flex-col overflow-hidden rounded-t-3xl border border-border-soft bg-surface lg:rounded-3xl">
+      <motion.div
+        className="relative z-10 flex max-h-[92svh] w-full max-w-[480px] flex-col overflow-hidden rounded-t-3xl border border-border-soft bg-surface lg:rounded-3xl"
+        initial={{ opacity: 0, y: 40, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 40, scale: 0.98 }}
+        transition={SHEET_SPRING}
+      >
         <div className="flex items-center justify-between border-b border-border-soft px-4 py-3">
           <span className="text-[15px] font-semibold text-ink">
             {step === "success" ? "Order submitted" : `${stock.symbol} · ${stock.name}`}
@@ -95,21 +114,29 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
           </button>
         </div>
 
+        <AnimatePresence mode="wait" initial={false}>
+        <motion.div key={step} {...STEP_TRANSITION}>
+
         {step === "entry" && (
           <div className="flex flex-col overflow-y-auto">
-            <div className="flex px-4 pt-3">
+            <div className="relative flex px-4 pt-3">
               {(["buy", "sell"] as Side[]).map((s) => (
                 <button
                   key={s}
                   onClick={() => setSide(s)}
                   className={clsx(
-                    "flex-1 border-b-2 pb-2 text-center text-[15px] font-semibold capitalize transition-colors cursor-pointer",
-                    side === s
-                      ? "border-up text-ink"
-                      : "border-transparent text-ink-faint",
+                    "relative flex-1 pb-2 text-center text-[15px] font-semibold capitalize cursor-pointer transition-colors",
+                    side === s ? "text-ink" : "text-ink-faint",
                   )}
                 >
                   {s}
+                  {side === s && (
+                    <motion.div
+                      layoutId="order-side-underline"
+                      className="absolute inset-x-0 bottom-0 h-0.5 bg-up"
+                      transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                    />
+                  )}
                 </button>
               ))}
             </div>
@@ -244,7 +271,10 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
             </button>
           </div>
         )}
-      </div>
+
+        </motion.div>
+        </AnimatePresence>
+      </motion.div>
     </div>
   );
 }

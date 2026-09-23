@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { motion } from "motion/react";
 import type { Range } from "../types";
 
 const RANGES: Range[] = ["1D", "1W", "1M", "3M", "YTD", "1Y", "5Y", "ALL"];
@@ -18,16 +19,26 @@ export function RangeTabs({ value, onChange, positive }: RangeTabsProps) {
           <button
             key={r}
             onClick={() => onChange(r)}
-            className={clsx(
-              "flex-1 rounded-full py-1.5 text-xs font-semibold transition-colors cursor-pointer",
-              active
-                ? positive
-                  ? "bg-up-soft text-up"
-                  : "bg-down-soft text-down"
-                : "text-ink-faint hover:text-ink-dim",
-            )}
+            className="relative flex-1 rounded-full py-1.5 text-xs font-semibold cursor-pointer"
           >
-            {r}
+            {active && (
+              <motion.div
+                layoutId="range-pill"
+                className={clsx(
+                  "absolute inset-0 rounded-full",
+                  positive ? "bg-up-soft" : "bg-down-soft",
+                )}
+                transition={{ type: "spring", stiffness: 500, damping: 35 }}
+              />
+            )}
+            <span
+              className={clsx(
+                "relative z-10 transition-colors",
+                active ? (positive ? "text-up" : "text-down") : "text-ink-faint hover:text-ink-dim",
+              )}
+            >
+              {r}
+            </span>
           </button>
         );
       })}

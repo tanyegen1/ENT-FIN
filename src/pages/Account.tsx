@@ -1,3 +1,4 @@
+import { motion } from "motion/react";
 import {
   Banknote,
   Bell,
@@ -57,19 +58,25 @@ export function Account() {
 
       <div className="mt-6 px-2 lg:px-4">
         {SETTINGS_ROWS.map((row) => (
-          <button
+          <motion.button
             key={row.label}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-left hover:bg-surface-2 cursor-pointer"
+            whileTap={{ scale: 0.98, backgroundColor: "var(--color-surface-2)" }}
+            transition={{ duration: 0.12 }}
           >
             <row.icon size={20} className="text-ink-dim" />
             <span className="flex-1 text-[15px] text-ink">{row.label}</span>
             <ChevronRight size={18} className="text-ink-faint" />
-          </button>
+          </motion.button>
         ))}
-        <button className="flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-left hover:bg-surface-2 cursor-pointer">
+        <motion.button
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-left hover:bg-surface-2 cursor-pointer"
+          whileTap={{ scale: 0.98, backgroundColor: "var(--color-surface-2)" }}
+          transition={{ duration: 0.12 }}
+        >
           <LogOut size={20} className="text-down" />
           <span className="flex-1 text-[15px] text-down">Sign out</span>
-        </button>
+        </motion.button>
       </div>
 
       <section className="mt-6 px-4 lg:px-6">

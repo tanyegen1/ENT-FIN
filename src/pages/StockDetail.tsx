@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
+import { AnimatePresence, motion } from "motion/react";
 import { Star } from "lucide-react";
 import { getPriceHistory } from "../data/priceHistory";
 import { isLiveSymbol, useStock } from "../data/liveQuotes";
@@ -10,6 +11,7 @@ import { PriceChange } from "../components/PriceChange";
 import { PageHeader } from "../components/PageHeader";
 import { OrderSheet } from "../components/OrderSheet";
 import { LiveDot } from "../components/LiveDot";
+import { StockLogo } from "../components/StockLogo";
 import {
   formatCompactNumber,
   formatCurrency,
@@ -62,28 +64,46 @@ export function StockDetail() {
         title={stock.symbol}
         back
         right={
-          <button
+          <motion.button
             onClick={() => toggleWatchlist(stock.symbol)}
             className="flex h-8 w-8 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
             aria-label="Toggle watchlist"
+            whileTap={{ scale: 0.85 }}
+            animate={watched ? { scale: [1, 1.35, 1] } : { scale: 1 }}
+            transition={{ duration: 0.32, ease: "easeOut" }}
           >
             <Star
               size={20}
               className={watched ? "fill-up text-up" : ""}
             />
-          </button>
+          </motion.button>
         }
       />
 
       <div className="px-4 pt-4 lg:px-6">
-        <div className="flex items-center gap-1.5 text-sm text-ink-faint">
-          <span>
-            {stock.name} · {stock.symbol}
-          </span>
-          <LiveDot symbol={stock.symbol} showLabel />
-        </div>
-        <div className="mt-1 text-4xl font-semibold tabular-nums text-ink">
-          {formatCurrencyPrecise(displayPrice)}
+        <div className="flex items-center gap-3">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.5, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+          >
+            <StockLogo symbol={stock.symbol} name={stock.name} fallbackColor={stock.color} size={44} />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
+          >
+            <div className="flex items-center gap-1.5 text-sm text-ink-faint">
+              <span>
+                {stock.name} · {stock.symbol}
+              </span>
+              <LiveDot symbol={stock.symbol} showLabel />
+            </div>
+            <div className="text-3xl font-semibold tabular-nums text-ink">
+              {formatCurrencyPrecise(displayPrice)}
+            </div>
+          </motion.div>
         </div>
         <div className="mt-1.5">
           <PriceChange amount={diff} percent={diffPercent} size="md" />
@@ -148,23 +168,29 @@ export function StockDetail() {
       </section>
 
       <div className="fixed inset-x-0 bottom-16 z-30 mx-auto flex max-w-[1100px] gap-3 border-t border-border-soft bg-app-bg/95 px-4 py-3 backdrop-blur lg:sticky lg:bottom-4 lg:mt-8 lg:rounded-2xl lg:border lg:px-6 lg:py-4">
-        <button
+        <motion.button
           onClick={() => setOrder("sell")}
           className="flex-1 rounded-full border border-border py-3 text-[15px] font-semibold text-ink hover:bg-surface-2 cursor-pointer"
+          whileTap={{ scale: 0.96 }}
+          transition={{ duration: 0.12 }}
         >
           Sell
-        </button>
-        <button
+        </motion.button>
+        <motion.button
           onClick={() => setOrder("buy")}
           className="flex-1 rounded-full bg-up py-3 text-[15px] font-semibold text-black hover:brightness-110 cursor-pointer"
+          whileTap={{ scale: 0.96 }}
+          transition={{ duration: 0.12 }}
         >
           Buy
-        </button>
+        </motion.button>
       </div>
 
-      {order && (
-        <OrderSheet stock={stock} initialSide={order} onClose={() => setOrder(null)} />
-      )}
+      <AnimatePresence>
+        {order && (
+          <OrderSheet stock={stock} initialSide={order} onClose={() => setOrder(null)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

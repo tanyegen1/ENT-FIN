@@ -1,3 +1,4 @@
+import { motion } from "motion/react";
 import { Delete } from "lucide-react";
 
 interface KeypadProps {
@@ -12,17 +13,19 @@ export function Keypad({ onDigit, onDecimal, onBackspace }: KeypadProps) {
   return (
     <div className="grid grid-cols-3 gap-1">
       {KEYS.map((key) => (
-        <button
+        <motion.button
           key={key}
           onClick={() => {
             if (key === "back") onBackspace();
             else if (key === ".") onDecimal();
             else onDigit(key);
           }}
-          className="flex h-14 items-center justify-center rounded-xl text-2xl font-medium text-ink transition-colors hover:bg-surface-2 active:bg-surface-3 cursor-pointer"
+          className="flex h-14 items-center justify-center rounded-xl text-2xl font-medium text-ink transition-colors hover:bg-surface-2 cursor-pointer"
+          whileTap={{ scale: 0.88, backgroundColor: "var(--color-surface-3)" }}
+          transition={{ duration: 0.1 }}
         >
           {key === "back" ? <Delete size={24} /> : key}
-        </button>
+        </motion.button>
       ))}
     </div>
   );
