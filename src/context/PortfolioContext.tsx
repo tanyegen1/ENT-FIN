@@ -10,6 +10,7 @@ import {
 import type { Holding, OrderRecord } from "../types";
 import { INITIAL_CASH, INITIAL_HOLDINGS, INITIAL_WATCHLIST } from "../data/portfolio";
 import { getStock } from "../data/stocks";
+import { getLiveStock, startLiveQuotes, useLiveQuotes } from "../data/liveQuotes";
 
 const STORAGE_KEY = "pulse.portfolio.v1";
 
@@ -52,6 +53,11 @@ function loadInitial(): PersistedState {
 
 export function PortfolioProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<PersistedState>(loadInitial);
+  const liveQuotes = useLiveQuotes();
+
+  useEffect(() => {
+    startLiveQuotes();
+  }, []);
 
   useEffect(() => {
     try {
@@ -147,10 +153,11 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   const equityValue = useMemo(
     () =>
       state.holdings.reduce((sum, h) => {
-        const stock = getStock(h.symbol);
+        const stock = getLiveStock(h.symbol) ?? getStock(h.symbol);
         return sum + (stock ? stock.price * h.shares : 0);
       }, 0),
-    [state.holdings],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- liveQuotes triggers recompute on each poll
+    [state.holdings, liveQuotes],
   );
 
   const totalValue = equityValue + state.cash;

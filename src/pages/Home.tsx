@@ -4,6 +4,7 @@ import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { usePortfolio } from "../context/PortfolioContext";
 import { getStock } from "../data/stocks";
 import { getPortfolioHistory } from "../data/portfolioHistory";
+import { useLiveQuotes } from "../data/liveQuotes";
 import { InteractiveChart } from "../components/InteractiveChart";
 import { RangeTabs } from "../components/RangeTabs";
 import { StockRow } from "../components/StockRow";
@@ -16,10 +17,12 @@ export function Home() {
   const { holdings, cash, totalValue, watchlist } = usePortfolio();
   const [range, setRange] = useState<Range>("1D");
   const [scrub, setScrub] = useState<PricePoint | null>(null);
+  const liveQuotes = useLiveQuotes();
 
   const history = useMemo(
     () => getPortfolioHistory(holdings, cash, range),
-    [holdings, cash, range],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- liveQuotes triggers recompute on each poll
+    [holdings, cash, range, liveQuotes],
   );
 
   const startValue = history[0]?.price ?? totalValue;

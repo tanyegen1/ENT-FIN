@@ -1,14 +1,15 @@
 import { useMemo, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { Star } from "lucide-react";
-import { getStock } from "../data/stocks";
 import { getPriceHistory } from "../data/priceHistory";
+import { isLiveSymbol, useStock } from "../data/liveQuotes";
 import { usePortfolio } from "../context/PortfolioContext";
 import { InteractiveChart } from "../components/InteractiveChart";
 import { RangeTabs } from "../components/RangeTabs";
 import { PriceChange } from "../components/PriceChange";
 import { PageHeader } from "../components/PageHeader";
 import { OrderSheet } from "../components/OrderSheet";
+import { LiveDot } from "../components/LiveDot";
 import {
   formatCompactNumber,
   formatCurrency,
@@ -19,14 +20,17 @@ import type { PricePoint, Range } from "../types";
 
 export function StockDetail() {
   const { symbol = "" } = useParams();
-  const stock = getStock(symbol.toUpperCase());
+  const stock = useStock(symbol.toUpperCase());
   const { getHolding, isWatched, toggleWatchlist } = usePortfolio();
   const [range, setRange] = useState<Range>("1D");
   const [scrub, setScrub] = useState<PricePoint | null>(null);
   const [order, setOrder] = useState<"buy" | "sell" | null>(null);
 
   const history = useMemo(
-    () => (stock ? getPriceHistory(stock.symbol, range) : []),
+    () =>
+      stock
+        ? getPriceHistory(stock.symbol, range, isLiveSymbol(stock.symbol) ? stock.price : undefined)
+        : [],
     [stock, range],
   );
 
@@ -72,8 +76,11 @@ export function StockDetail() {
       />
 
       <div className="px-4 pt-4 lg:px-6">
-        <div className="text-sm text-ink-faint">
-          {stock.name} · {stock.symbol}
+        <div className="flex items-center gap-1.5 text-sm text-ink-faint">
+          <span>
+            {stock.name} · {stock.symbol}
+          </span>
+          <LiveDot symbol={stock.symbol} showLabel />
         </div>
         <div className="mt-1 text-4xl font-semibold tabular-nums text-ink">
           {formatCurrencyPrecise(displayPrice)}

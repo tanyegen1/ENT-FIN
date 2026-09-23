@@ -1,5 +1,6 @@
 import type { Holding, PricePoint, Range } from "../types";
 import { getPriceHistory } from "./priceHistory";
+import { getLiveQuote, isLiveSymbol } from "./liveQuotes";
 
 export function getPortfolioHistory(
   holdings: Holding[],
@@ -13,10 +14,13 @@ export function getPortfolioHistory(
       { t: now, price: cash },
     ];
   }
-  const histories = holdings.map((h) => ({
-    shares: h.shares,
-    points: getPriceHistory(h.symbol, range),
-  }));
+  const histories = holdings.map((h) => {
+    const liveEndPrice = isLiveSymbol(h.symbol) ? getLiveQuote(h.symbol)?.price : undefined;
+    return {
+      shares: h.shares,
+      points: getPriceHistory(h.symbol, range, liveEndPrice),
+    };
+  });
   const length = histories[0].points.length;
   const result: PricePoint[] = [];
   for (let i = 0; i < length; i++) {

@@ -45,13 +45,24 @@ const RANGE_MS: Record<Range, number> = {
 
 const cache = new Map<string, PricePoint[]>();
 
-export function getPriceHistory(symbol: string, range: Range): PricePoint[] {
+/**
+ * `liveEndPrice`, when passed, anchors the generated walk to a real fetched
+ * quote instead of the static mock price — used for the handful of tickers
+ * with live data wired up. Those calls skip the cache (the price moves
+ * every poll) since regenerating a ~250-point walk is cheap.
+ */
+export function getPriceHistory(
+  symbol: string,
+  range: Range,
+  liveEndPrice?: number,
+): PricePoint[] {
   const key = `${symbol}:${range}`;
-  const cached = cache.get(key);
-  if (cached) return cached;
+  if (liveEndPrice === undefined) {
+    const cached = cache.get(key);
+    if (cached) return cached;
+  }
 
-  const stock = getStock(symbol);
-  const endPrice = stock?.price ?? 100;
+  const endPrice = liveEndPrice ?? getStock(symbol)?.price ?? 100;
   const volatility = range === "1D" ? 0.0009 : 0.014;
   const points = RANGE_POINTS[range];
   const span = RANGE_MS[range];
@@ -75,6 +86,6 @@ export function getPriceHistory(symbol: string, range: Range): PricePoint[] {
   }));
   result[result.length - 1] = { t: now, price: endPrice };
 
-  cache.set(key, result);
+  if (liveEndPrice === undefined) cache.set(key, result);
   return result;
 }

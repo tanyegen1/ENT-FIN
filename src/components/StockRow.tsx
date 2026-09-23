@@ -3,7 +3,9 @@ import type { Stock } from "../types";
 import { formatCurrencyPrecise, formatShares } from "../lib/format";
 import { Sparkline } from "./Sparkline";
 import { StockLogo } from "./StockLogo";
+import { LiveDot } from "./LiveDot";
 import { getPriceHistory } from "../data/priceHistory";
+import { isLiveSymbol, useLiveQuotes } from "../data/liveQuotes";
 import { usePortfolio } from "../context/PortfolioContext";
 
 interface StockRowProps {
@@ -11,12 +13,15 @@ interface StockRowProps {
   subtitle?: string;
 }
 
-export function StockRow({ stock, subtitle }: StockRowProps) {
+export function StockRow({ stock: baseStock, subtitle }: StockRowProps) {
   const { getHolding } = usePortfolio();
-  const holding = getHolding(stock.symbol);
+  const holding = getHolding(baseStock.symbol);
+  const { quotes } = useLiveQuotes();
+  const liveQuote = isLiveSymbol(baseStock.symbol) ? quotes[baseStock.symbol] : undefined;
+  const stock = liveQuote ? { ...baseStock, price: liveQuote.price, prevClose: liveQuote.prevClose } : baseStock;
   const change = stock.price - stock.prevClose;
   const positive = change >= 0;
-  const history = getPriceHistory(stock.symbol, "1D");
+  const history = getPriceHistory(stock.symbol, "1D", liveQuote?.price);
 
   return (
     <Link
@@ -25,8 +30,9 @@ export function StockRow({ stock, subtitle }: StockRowProps) {
     >
       <StockLogo symbol={stock.symbol} name={stock.name} fallbackColor={stock.color} />
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[15px] font-medium text-ink">
-          {stock.symbol}
+        <div className="flex items-center gap-1.5 text-[15px] font-medium text-ink">
+          <span className="truncate">{stock.symbol}</span>
+          <LiveDot symbol={stock.symbol} />
         </div>
         <div className="truncate text-[13px] text-ink-faint">
           {subtitle ?? (holding ? `${formatShares(holding.shares)} shares` : stock.name)}
