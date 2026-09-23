@@ -53,11 +53,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!supabase) return;
+    let settled = false;
 
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null);
-      setReady(true);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        settled = true;
+        setUser(data.session?.user ?? null);
+        setReady(true);
+      })
+      .catch(() => {
+        // Network hiccup, bad URL, etc. — fall through to signed-out/guest
+        // rather than leaving the app stuck on the loading screen forever.
+        settled = true;
+        setReady(true);
+      });
+
+    // Absolute fallback: never let a hung request block the app indefinitely.
+    const timeout = setTimeout(() => {
+      if (!settled) setReady(true);
+    }, 6000);
 
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
@@ -71,7 +86,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    return () => subscription.subscription.unsubscribe();
+    return () => {
+      clearTimeout(timeout);
+      subscription.subscription.unsubscribe();
+    };
   }, []);
 
   const status: AuthStatus = !isSupabaseConfigured

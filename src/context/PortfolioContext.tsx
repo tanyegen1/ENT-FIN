@@ -97,31 +97,50 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isCloud || !user) return;
     let cancelled = false;
+    let settled = false;
     setLoaded(false);
     setSyncStatus("saving");
 
     (async () => {
-      const remote = await fetchPortfolio(user.id);
-      if (cancelled) return;
-      skipNextSaveRef.current = true;
-      if (remote) {
-        setState(remote);
-        setSyncStatus("synced");
-      } else {
-        const initial = defaultState();
-        setState(initial);
-        try {
-          await createPortfolio(user.id, initial);
-          if (!cancelled) setSyncStatus("synced");
-        } catch {
-          if (!cancelled) setSyncStatus("error");
+      try {
+        const remote = await fetchPortfolio(user.id);
+        if (cancelled) return;
+        skipNextSaveRef.current = true;
+        if (remote) {
+          setState(remote);
+          setSyncStatus("synced");
+        } else {
+          const initial = defaultState();
+          setState(initial);
+          try {
+            await createPortfolio(user.id, initial);
+            if (!cancelled) setSyncStatus("synced");
+          } catch {
+            if (!cancelled) setSyncStatus("error");
+          }
         }
+      } catch {
+        if (!cancelled) setSyncStatus("error");
+      } finally {
+        settled = true;
+        if (!cancelled) setLoaded(true);
       }
-      if (!cancelled) setLoaded(true);
     })();
+
+    // Absolute fallback: never let a hung request strand the user on a
+    // loading screen — fall back to a local, unsynced session instead.
+    const timeout = setTimeout(() => {
+      if (!settled && !cancelled) {
+        skipNextSaveRef.current = true;
+        setState(defaultState());
+        setSyncStatus("error");
+        setLoaded(true);
+      }
+    }, 8000);
 
     return () => {
       cancelled = true;
+      clearTimeout(timeout);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run only when switching cloud users
   }, [isCloud, user?.id]);
