@@ -6,18 +6,35 @@ import {
   Banknote,
   Bell,
   ChevronRight,
+  CloudOff,
   FileText,
   FlaskConical,
   HelpCircle,
+  LogIn,
   LogOut,
   RotateCcw,
   ShieldCheck,
   User,
 } from "lucide-react";
 import { usePortfolio } from "../context/PortfolioContext";
+import { useAuth } from "../context/AuthContext";
 import { ConfirmSheet } from "../components/ConfirmSheet";
 import { formatCurrency, formatCurrencyPrecise, formatShares } from "../lib/format";
 import type { OrderRecord, TransferRecord } from "../types";
+
+const SYNC_LABEL: Record<string, string> = {
+  local: "Saved on this device",
+  saving: "Saving…",
+  synced: "Synced to your account",
+  error: "Sync error — will retry",
+};
+
+const SYNC_DOT: Record<string, string> = {
+  local: "bg-ink-faint",
+  saving: "bg-ink-faint animate-pulse",
+  synced: "bg-up",
+  error: "bg-down",
+};
 
 const SETTINGS_ROWS = [
   { icon: Banknote, label: "Transfers & banking" },
@@ -32,7 +49,8 @@ type ActivityItem =
   | { kind: "transfer"; timestamp: number; data: TransferRecord };
 
 export function Account() {
-  const { cash, equityValue, totalValue, orders, transfers, resetPortfolio } = usePortfolio();
+  const { cash, equityValue, totalValue, orders, transfers, resetPortfolio, syncStatus } = usePortfolio();
+  const { status, user, signOut, exitGuestMode } = useAuth();
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const activity: ActivityItem[] = useMemo(() => {
@@ -43,19 +61,52 @@ export function Account() {
     return items.sort((a, b) => b.timestamp - a.timestamp);
   }, [orders, transfers]);
 
+  const meta = (user?.user_metadata ?? {}) as Record<string, string | undefined>;
+  const avatarUrl = meta.avatar_url ?? meta.picture;
+  const displayName =
+    status === "signed-in"
+      ? meta.full_name ?? meta.name ?? user?.email?.split("@")[0] ?? "Account"
+      : status === "guest"
+        ? "Guest"
+        : "Local practice";
+  const displaySubtitle =
+    status === "signed-in"
+      ? user?.email
+      : status === "guest"
+        ? "Practicing locally — no account yet"
+        : "Cloud sync not configured";
+
   return (
     <div className="pb-10">
       <div className="flex items-center gap-4 px-4 pt-6 lg:px-6">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-2 text-xl font-semibold text-ink">
-          <User size={28} />
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-2 text-xl font-semibold text-ink">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+          ) : (
+            <User size={28} />
+          )}
         </div>
-        <div>
-          <div className="text-lg font-semibold text-ink">Alex Morgan</div>
-          <div className="text-sm text-ink-faint">alex.morgan@example.com</div>
-          <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
-            <FlaskConical size={11} />
-            Paper trading account
-          </span>
+        <div className="min-w-0">
+          <div className="truncate text-lg font-semibold text-ink">{displayName}</div>
+          <div className="truncate text-sm text-ink-faint">{displaySubtitle}</div>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
+              <FlaskConical size={11} />
+              Paper trading account
+            </span>
+            {status === "signed-in" && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-medium text-ink-faint">
+                <span className={`h-1.5 w-1.5 rounded-full ${SYNC_DOT[syncStatus]}`} />
+                {SYNC_LABEL[syncStatus]}
+              </span>
+            )}
+            {status === "unconfigured" && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-medium text-ink-faint">
+                <CloudOff size={11} />
+                Local only
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -103,14 +154,29 @@ export function Account() {
           <span className="flex-1 text-[15px] text-ink">Reset practice portfolio</span>
           <ChevronRight size={18} className="text-ink-faint" />
         </motion.button>
-        <motion.button
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-left hover:bg-surface-2 cursor-pointer"
-          whileTap={{ scale: 0.98, backgroundColor: "var(--color-surface-2)" }}
-          transition={{ duration: 0.12 }}
-        >
-          <LogOut size={20} className="text-down" />
-          <span className="flex-1 text-[15px] text-down">Sign out</span>
-        </motion.button>
+        {status === "signed-in" && (
+          <motion.button
+            onClick={() => signOut()}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-left hover:bg-surface-2 cursor-pointer"
+            whileTap={{ scale: 0.98, backgroundColor: "var(--color-surface-2)" }}
+            transition={{ duration: 0.12 }}
+          >
+            <LogOut size={20} className="text-down" />
+            <span className="flex-1 text-[15px] text-down">Sign out</span>
+          </motion.button>
+        )}
+        {status === "guest" && (
+          <motion.button
+            onClick={() => exitGuestMode()}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-left hover:bg-surface-2 cursor-pointer"
+            whileTap={{ scale: 0.98, backgroundColor: "var(--color-surface-2)" }}
+            transition={{ duration: 0.12 }}
+          >
+            <LogIn size={20} className="text-up" />
+            <span className="flex-1 text-[15px] text-up">Log in or create an account</span>
+            <ChevronRight size={18} className="text-ink-faint" />
+          </motion.button>
+        )}
       </div>
 
       <section className="mt-6 px-4 lg:px-6">

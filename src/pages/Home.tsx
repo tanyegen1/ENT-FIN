@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowDownToLine, ArrowUpFromLine, FlaskConical } from "lucide-react";
 import { usePortfolio } from "../context/PortfolioContext";
+import { useAuth } from "../context/AuthContext";
 import { getStock } from "../data/stocks";
 import { getPortfolioHistory } from "../data/portfolioHistory";
 import { useLiveQuotes } from "../data/liveQuotes";
@@ -17,6 +18,7 @@ import type { PricePoint, Range } from "../types";
 
 export function Home() {
   const { holdings, cash, totalValue, watchlist } = usePortfolio();
+  const { user } = useAuth();
   const [range, setRange] = useState<Range>("1D");
   const [scrub, setScrub] = useState<PricePoint | null>(null);
   const [cashMode, setCashMode] = useState<"deposit" | "withdraw" | null>(null);
@@ -54,9 +56,17 @@ export function Home() {
         </div>
         <Link
           to="/account"
-          className="ml-auto flex h-9 w-9 items-center justify-center rounded-full bg-surface-2 text-sm font-semibold text-ink lg:hidden"
+          className="ml-auto flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-surface-2 text-sm font-semibold text-ink lg:hidden"
         >
-          A
+          {(() => {
+            const meta = (user?.user_metadata ?? {}) as Record<string, string | undefined>;
+            const avatarUrl = meta.avatar_url ?? meta.picture;
+            if (avatarUrl) {
+              return <img src={avatarUrl} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />;
+            }
+            const name = meta.full_name ?? meta.name ?? user?.email;
+            return name ? name[0]!.toUpperCase() : "G";
+          })()}
         </Link>
       </div>
 

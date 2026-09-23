@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -11,6 +12,9 @@ import type { Holding, OrderRecord, TransferRecord } from "../types";
 import { INITIAL_CASH, INITIAL_HOLDINGS, INITIAL_WATCHLIST } from "../data/portfolio";
 import { getStock } from "../data/stocks";
 import { getLiveStock, startLiveQuotes, useLiveQuotes } from "../data/liveQuotes";
+import { useAuth } from "./AuthContext";
+import { createPortfolio, fetchPortfolio, savePortfolio } from "../lib/portfolioService";
+import { Logo } from "../components/Logo";
 
 const STORAGE_KEY = "pulse.portfolio.v1";
 
@@ -26,6 +30,8 @@ interface PersistedState {
   transfers: TransferRecord[];
 }
 
+export type SyncStatus = "local" | "saving" | "synced" | "error";
+
 interface PortfolioContextValue extends PersistedState {
   buy: (symbol: string, shares: number, price: number) => void;
   sell: (symbol: string, shares: number, price: number) => void;
@@ -37,6 +43,7 @@ interface PortfolioContextValue extends PersistedState {
   getHolding: (symbol: string) => Holding | undefined;
   equityValue: number;
   totalValue: number;
+  syncStatus: SyncStatus;
 }
 
 const PortfolioContext = createContext<PortfolioContextValue | null>(null);
@@ -51,7 +58,7 @@ function defaultState(): PersistedState {
   };
 }
 
-function loadInitial(): PersistedState {
+function loadLocal(): PersistedState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -73,20 +80,72 @@ function loadInitial(): PersistedState {
 }
 
 export function PortfolioProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<PersistedState>(loadInitial);
+  const { status, user } = useAuth();
+  const isCloud = status === "signed-in" && !!user;
+
+  const [state, setState] = useState<PersistedState>(() => (isCloud ? defaultState() : loadLocal()));
+  const [loaded, setLoaded] = useState(!isCloud);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>(isCloud ? "saving" : "local");
+  const skipNextSaveRef = useRef(false);
   const liveQuotes = useLiveQuotes();
 
   useEffect(() => {
     startLiveQuotes();
   }, []);
 
+  // Fetch (or create) the signed-in user's cloud portfolio once per session.
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {
-      // storage unavailable — ignore
+    if (!isCloud || !user) return;
+    let cancelled = false;
+    setLoaded(false);
+    setSyncStatus("saving");
+
+    (async () => {
+      const remote = await fetchPortfolio(user.id);
+      if (cancelled) return;
+      skipNextSaveRef.current = true;
+      if (remote) {
+        setState(remote);
+        setSyncStatus("synced");
+      } else {
+        const initial = defaultState();
+        setState(initial);
+        try {
+          await createPortfolio(user.id, initial);
+          if (!cancelled) setSyncStatus("synced");
+        } catch {
+          if (!cancelled) setSyncStatus("error");
+        }
+      }
+      if (!cancelled) setLoaded(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run only when switching cloud users
+  }, [isCloud, user?.id]);
+
+  // Persist on every change — cloud upsert for signed-in users, localStorage for guests.
+  useEffect(() => {
+    if (!loaded) return;
+    if (skipNextSaveRef.current) {
+      skipNextSaveRef.current = false;
+      return;
     }
-  }, [state]);
+    if (isCloud && user) {
+      setSyncStatus("saving");
+      savePortfolio(user.id, state)
+        .then(() => setSyncStatus("synced"))
+        .catch(() => setSyncStatus("error"));
+    } else {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch {
+        // storage unavailable — ignore
+      }
+    }
+  }, [state, isCloud, user, loaded]);
 
   const buy = useCallback((symbol: string, shares: number, price: number) => {
     setState((prev) => {
@@ -228,7 +287,16 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     getHolding,
     equityValue,
     totalValue,
+    syncStatus,
   };
+
+  if (!loaded) {
+    return (
+      <div className="flex min-h-svh items-center justify-center bg-app-bg">
+        <Logo size={32} />
+      </div>
+    );
+  }
 
   return (
     <PortfolioContext.Provider value={value}>
