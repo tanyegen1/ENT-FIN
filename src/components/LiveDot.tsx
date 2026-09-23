@@ -12,7 +12,7 @@ export function LiveDot({ symbol, showLabel }: LiveDotProps) {
   if (!status || status === "idle") return null;
 
   const color =
-    status === "live" ? "bg-up" : status === "loading" ? "bg-ink-faint" : "bg-down";
+    status === "live" ? "bg-brand" : status === "loading" ? "bg-ink-faint" : "bg-down";
   const label = status === "live" ? "Live" : status === "loading" ? "Updating" : "Demo data";
   const title =
     status === "error"

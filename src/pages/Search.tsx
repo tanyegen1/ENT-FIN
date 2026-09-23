@@ -15,7 +15,7 @@ export function Search() {
     <div className="pb-8">
       <div className="sticky top-0 z-30 bg-app-bg/95 px-4 pb-3 pt-5 backdrop-blur lg:px-6">
         <h1 className="mb-3 text-2xl font-semibold text-ink">Search</h1>
-        <div className="flex items-center gap-2 rounded-xl bg-surface-2 px-3 py-2.5">
+        <div className="flex items-center gap-2 rounded-xl border border-transparent bg-surface-2 px-3 py-2.5 transition-colors has-[input:focus]:border-brand">
           <SearchIcon size={18} className="text-ink-faint" />
           <input
             autoFocus

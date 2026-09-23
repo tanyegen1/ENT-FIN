@@ -14,6 +14,9 @@ const FRIENDLY_NAMES: Record<string, string> = {
   QQQ: "Nasdaq 100",
 };
 
+const BENCHMARK_COLOR = "#5b8def";
+const PEER_COLOR = "#f59e0b";
+
 function friendlyName(symbol: string): string {
   return FRIENDLY_NAMES[symbol] ?? symbol;
 }
@@ -74,7 +77,7 @@ export function StockInsights({ stock, range }: StockInsightsProps) {
       result.push({
         symbol: benchmarkStock.symbol,
         label: friendlyName(benchmarkStock.symbol),
-        color: "#38bdf8",
+        color: BENCHMARK_COLOR,
         points: getPriceHistory(
           benchmarkStock.symbol,
           range,
@@ -86,7 +89,7 @@ export function StockInsights({ stock, range }: StockInsightsProps) {
       result.push({
         symbol: peerStock.symbol,
         label: peerStock.symbol,
-        color: "#f59e0b",
+        color: PEER_COLOR,
         points: getPriceHistory(
           peerStock.symbol,
           range,
@@ -184,7 +187,7 @@ export function StockInsights({ stock, range }: StockInsightsProps) {
                 className={clsx(
                   "shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors cursor-pointer",
                   peerSymbol === p.symbol
-                    ? "bg-surface-3 text-ink"
+                    ? "bg-brand-soft text-brand-light"
                     : "bg-surface-2 text-ink-faint hover:text-ink-dim",
                 )}
               >
@@ -204,10 +207,10 @@ export function StockInsights({ stock, range }: StockInsightsProps) {
               <tr className="border-b border-border-soft bg-surface-2 text-ink-faint">
                 <th className="px-3 py-2 font-medium">Metric</th>
                 <th className="px-3 py-2 text-right font-medium text-ink">{stock.symbol}</th>
-                <th className="px-3 py-2 text-right font-medium" style={{ color: "#38bdf8" }}>
+                <th className="px-3 py-2 text-right font-medium" style={{ color: BENCHMARK_COLOR }}>
                   {benchmarkStock ? friendlyName(benchmarkStock.symbol) : "—"}
                 </th>
-                <th className="px-3 py-2 text-right font-medium" style={{ color: "#f59e0b" }}>
+                <th className="px-3 py-2 text-right font-medium" style={{ color: PEER_COLOR }}>
                   {peerStock?.symbol ?? "—"}
                 </th>
               </tr>

@@ -81,7 +81,11 @@ export function StockDetail() {
         }
       />
 
-      <div className="px-4 pt-4 lg:px-6">
+      <div className="relative px-4 pt-4 lg:px-6">
+        <div
+          className="pointer-events-none absolute -top-6 left-1/2 h-40 w-[120%] -translate-x-1/2 rounded-full blur-3xl"
+          style={{ backgroundColor: "var(--color-brand)", opacity: 0.07 }}
+        />
         <div className="flex items-center gap-3">
           <motion.div
             initial={{ opacity: 0, scale: 0.5, y: 8 }}

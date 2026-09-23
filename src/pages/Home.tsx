@@ -52,11 +52,11 @@ export function Home() {
       <div className="flex items-center justify-between px-4 pt-5 lg:px-6">
         <div className="flex items-center gap-2 lg:hidden">
           <Logo size={20} />
-          <span className="text-base font-semibold text-ink">Pulse</span>
+          <span className="text-base font-semibold text-ink">Arvo</span>
         </div>
         <Link
           to="/account"
-          className="ml-auto flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-surface-2 text-sm font-semibold text-ink lg:hidden"
+          className="ml-auto flex h-9 w-9 items-center justify-center overflow-hidden rounded-full brand-gradient text-sm font-semibold text-white lg:hidden"
         >
           {(() => {
             const meta = (user?.user_metadata ?? {}) as Record<string, string | undefined>;
@@ -70,7 +70,11 @@ export function Home() {
         </Link>
       </div>
 
-      <div className="px-4 pt-6 lg:px-6">
+      <div className="relative px-4 pt-6 lg:px-6">
+        <div
+          className="pointer-events-none absolute -top-10 left-1/2 h-48 w-[120%] -translate-x-1/2 rounded-full blur-3xl"
+          style={{ backgroundColor: "var(--color-brand)", opacity: 0.08 }}
+        />
         <div className="flex items-center gap-2">
           <span className="text-sm text-ink-faint">Portfolio value</span>
           <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
@@ -113,7 +117,7 @@ export function Home() {
           <motion.button
             onClick={() => setCashMode("deposit")}
             aria-label="Add practice cash"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-3 text-ink hover:brightness-125 cursor-pointer"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-3 text-brand-light hover:brightness-125 cursor-pointer"
             whileTap={{ scale: 0.88 }}
             transition={{ duration: 0.12 }}
           >
@@ -122,7 +126,7 @@ export function Home() {
           <motion.button
             onClick={() => setCashMode("withdraw")}
             aria-label="Withdraw cash"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-3 text-ink hover:brightness-125 cursor-pointer"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-3 text-brand-light hover:brightness-125 cursor-pointer"
             whileTap={{ scale: 0.88 }}
             transition={{ duration: 0.12 }}
           >
@@ -157,7 +161,7 @@ export function Home() {
         <section className="mt-6">
           <div className="flex items-center justify-between px-4 pb-1 lg:px-6">
             <h2 className="text-lg font-semibold text-ink">Watchlist</h2>
-            <Link to="/lists" className="text-sm font-medium text-ink-faint hover:text-ink">
+            <Link to="/lists" className="text-sm font-medium text-brand-light hover:brightness-125">
               See all
             </Link>
           </div>

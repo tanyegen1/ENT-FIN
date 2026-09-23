@@ -135,7 +135,7 @@ export function CashSheet({ mode, onClose }: CashSheetProps) {
                         <button
                           key={preset}
                           onClick={() => setRaw(String(preset))}
-                          className="shrink-0 rounded-full bg-surface-2 px-4 py-2 text-[13px] font-semibold text-ink hover:bg-surface-3 cursor-pointer"
+                          className="shrink-0 rounded-full bg-brand-soft px-4 py-2 text-[13px] font-semibold text-brand-light hover:brightness-125 cursor-pointer"
                         >
                           +${preset.toLocaleString()}
                         </button>
@@ -143,7 +143,7 @@ export function CashSheet({ mode, onClose }: CashSheetProps) {
                     : (
                         <button
                           onClick={withdrawAll}
-                          className="shrink-0 rounded-full bg-surface-2 px-4 py-2 text-[13px] font-semibold text-ink hover:bg-surface-3 cursor-pointer"
+                          className="shrink-0 rounded-full bg-brand-soft px-4 py-2 text-[13px] font-semibold text-brand-light hover:brightness-125 cursor-pointer"
                         >
                           Withdraw all
                         </button>
@@ -161,9 +161,9 @@ export function CashSheet({ mode, onClose }: CashSheetProps) {
                     whileTap={canConfirm ? { scale: 0.97 } : undefined}
                     transition={{ duration: 0.12 }}
                     className={clsx(
-                      "w-full rounded-full py-3.5 text-[15px] font-semibold transition-colors cursor-pointer",
+                      "w-full rounded-full py-3.5 text-[15px] font-semibold transition-all cursor-pointer",
                       canConfirm
-                        ? "bg-up text-black hover:brightness-110"
+                        ? "brand-gradient brand-glow text-white hover:brightness-110"
                         : "bg-surface-3 text-ink-faint cursor-not-allowed",
                     )}
                   >

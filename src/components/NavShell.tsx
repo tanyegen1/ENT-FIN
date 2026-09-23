@@ -41,7 +41,7 @@ export function NavShell() {
         <aside className="sticky top-0 hidden h-svh w-[220px] shrink-0 flex-col border-r border-border-soft px-3 py-5 lg:flex">
           <div className="flex items-center gap-2 px-3 pb-8">
             <Logo />
-            <span className="text-lg font-semibold tracking-tight text-ink">Pulse</span>
+            <span className="text-lg font-semibold tracking-tight text-ink">Arvo</span>
           </div>
           <nav className="flex flex-col gap-1">
             {NAV_ITEMS.map((item) => (
@@ -53,7 +53,7 @@ export function NavShell() {
                   clsx(
                     "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-medium transition-colors",
                     isActive
-                      ? "bg-surface-2 text-ink"
+                      ? "bg-brand-soft text-brand-light"
                       : "text-ink-dim hover:bg-surface-2 hover:text-ink",
                   )
                 }
@@ -84,7 +84,7 @@ export function NavShell() {
               className={({ isActive }) =>
                 clsx(
                   "flex flex-1 flex-col items-center gap-0.5 rounded-lg py-2 text-[10px] font-medium transition-colors",
-                  isActive ? "text-ink" : "text-ink-faint",
+                  isActive ? "text-brand-light" : "text-ink-faint",
                 )
               }
             >

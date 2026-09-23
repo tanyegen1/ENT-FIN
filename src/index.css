@@ -4,24 +4,32 @@
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Consolas, monospace;
 
-  --color-app-bg: #000000;
-  --color-surface: #0d0d0d;
-  --color-surface-2: #161616;
-  --color-surface-3: #1f1f1f;
-  --color-border: #2a2a2a;
-  --color-border-soft: #1c1c1c;
+  /* Near-black with a faint cool undertone rather than flat gray —
+     reads as "black theme" while giving surfaces some depth. */
+  --color-app-bg: #030408;
+  --color-surface: #0a0b12;
+  --color-surface-2: #12131d;
+  --color-surface-3: #1a1c29;
+  --color-border: #272a3a;
+  --color-border-soft: #171825;
 
   --color-ink: #ffffff;
-  --color-ink-dim: #a0a0a0;
-  --color-ink-faint: #6b6b6b;
+  --color-ink-dim: #a3a6b8;
+  --color-ink-faint: #6c6f83;
 
+  /* Reserved for financial meaning only — gains/losses, price direction.
+     Never repurposed as a generic UI accent. */
   --color-up: #00c805;
   --color-up-soft: #00c80520;
   --color-down: #ff5000;
   --color-down-soft: #ff500020;
 
-  --color-brand: #00c805;
-  --color-brand-ink: #003b02;
+  /* Arvo brand blue, sampled from the logo (#1959e9) — the app's one
+     accent color for brand, actions, and interactive/selected states. */
+  --color-brand: #1959e9;
+  --color-brand-light: #5b8def;
+  --color-brand-soft: #1959e926;
+  --color-brand-ink: #ffffff;
 }
 
 html, body, #root {
@@ -69,4 +77,12 @@ button {
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+.brand-gradient {
+  background-image: linear-gradient(135deg, var(--color-brand-light), var(--color-brand));
+}
+
+.brand-glow {
+  box-shadow: 0 8px 30px -8px rgba(25, 89, 233, 0.5);
 }

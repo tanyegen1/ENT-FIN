@@ -1,4 +1,4 @@
-# Pulse — Investing UI
+# Arvo — Investing UI
 
 A trading app front end built as a React + TypeScript + Vite SPA, following
 the same interaction patterns and visual language as popular commission-free

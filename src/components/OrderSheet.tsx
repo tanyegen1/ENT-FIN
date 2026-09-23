@@ -135,7 +135,7 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
                   {side === s && (
                     <motion.div
                       layoutId="order-side-underline"
-                      className="absolute inset-x-0 bottom-0 h-0.5 bg-up"
+                      className="absolute inset-x-0 bottom-0 h-0.5 bg-brand"
                       transition={{ type: "spring", stiffness: 500, damping: 35 }}
                     />
                   )}

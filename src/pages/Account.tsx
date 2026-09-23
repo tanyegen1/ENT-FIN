@@ -32,7 +32,7 @@ const SYNC_LABEL: Record<string, string> = {
 const SYNC_DOT: Record<string, string> = {
   local: "bg-ink-faint",
   saving: "bg-ink-faint animate-pulse",
-  synced: "bg-up",
+  synced: "bg-brand",
   error: "bg-down",
 };
 
@@ -79,7 +79,7 @@ export function Account() {
   return (
     <div className="pb-10">
       <div className="flex items-center gap-4 px-4 pt-6 lg:px-6">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-2 text-xl font-semibold text-ink">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full brand-gradient text-xl font-semibold text-white">
           {avatarUrl ? (
             <img src={avatarUrl} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
           ) : (
@@ -172,8 +172,8 @@ export function Account() {
             whileTap={{ scale: 0.98, backgroundColor: "var(--color-surface-2)" }}
             transition={{ duration: 0.12 }}
           >
-            <LogIn size={20} className="text-up" />
-            <span className="flex-1 text-[15px] text-up">Log in or create an account</span>
+            <LogIn size={20} className="text-brand-light" />
+            <span className="flex-1 text-[15px] text-brand-light">Log in or create an account</span>
             <ChevronRight size={18} className="text-ink-faint" />
           </motion.button>
         )}

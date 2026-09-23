@@ -10,7 +10,7 @@ import {
 import type { User } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
 
-const GUEST_KEY = "pulse.guestMode";
+const GUEST_KEY = "arvo.guestMode";
 
 export type AuthStatus = "loading" | "unconfigured" | "signed-out" | "guest" | "signed-in";
 

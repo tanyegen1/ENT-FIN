@@ -16,7 +16,7 @@ import { useAuth } from "./AuthContext";
 import { createPortfolio, fetchPortfolio, savePortfolio } from "../lib/portfolioService";
 import { Logo } from "../components/Logo";
 
-const STORAGE_KEY = "pulse.portfolio.v1";
+const STORAGE_KEY = "arvo.portfolio.v1";
 
 function makeId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;

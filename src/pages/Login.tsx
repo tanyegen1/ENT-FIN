@@ -46,8 +46,14 @@ export function Login() {
         className="w-full max-w-[380px]"
       >
         <div className="mb-8 flex flex-col items-center gap-2 text-center">
-          <Logo size={32} />
-          <h1 className="text-2xl font-semibold text-ink">Pulse</h1>
+          <div className="relative flex items-center justify-center">
+            <div
+              className="absolute h-20 w-20 rounded-full blur-2xl"
+              style={{ backgroundColor: "var(--color-brand)", opacity: 0.35 }}
+            />
+            <Logo size={36} />
+          </div>
+          <h1 className="text-2xl font-semibold text-ink">Arvo</h1>
           <p className="text-sm text-ink-faint">Practice trading, saved to your account.</p>
         </div>
 
@@ -66,11 +72,11 @@ export function Login() {
               {mode === m && (
                 <motion.div
                   layoutId="auth-mode-pill"
-                  className="absolute inset-0 rounded-full bg-surface-3"
+                  className="absolute inset-0 rounded-full bg-brand-soft"
                   transition={{ type: "spring", stiffness: 500, damping: 35 }}
                 />
               )}
-              <span className={`relative z-10 ${mode === m ? "text-ink" : "text-ink-faint"}`}>
+              <span className={`relative z-10 ${mode === m ? "text-brand-light" : "text-ink-faint"}`}>
                 {m === "login" ? "Log in" : "Sign up"}
               </span>
             </button>
@@ -89,7 +95,7 @@ export function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="w-full rounded-xl border border-border bg-surface-2 px-3.5 py-3 text-[15px] text-ink placeholder:text-ink-faint focus:border-ink-faint focus:outline-none"
+              className="w-full rounded-xl border border-border bg-surface-2 px-3.5 py-3 text-[15px] text-ink placeholder:text-ink-faint focus:border-brand focus:outline-none"
             />
           </div>
 
@@ -105,7 +111,7 @@ export function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full rounded-xl border border-border bg-surface-2 px-3.5 py-3 pr-11 text-[15px] text-ink placeholder:text-ink-faint focus:border-ink-faint focus:outline-none"
+                className="w-full rounded-xl border border-border bg-surface-2 px-3.5 py-3 pr-11 text-[15px] text-ink placeholder:text-ink-faint focus:border-brand focus:outline-none"
               />
               <button
                 type="button"
@@ -145,7 +151,7 @@ export function Login() {
             disabled={!canSubmit}
             whileTap={canSubmit ? { scale: 0.98 } : undefined}
             transition={{ duration: 0.12 }}
-            className="mt-1 flex w-full items-center justify-center gap-2 rounded-full bg-up py-3.5 text-[15px] font-semibold text-black transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:bg-surface-3 disabled:text-ink-faint"
+            className={`mt-1 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[15px] font-semibold text-white transition-all disabled:cursor-not-allowed disabled:bg-surface-3 disabled:text-ink-faint disabled:shadow-none ${canSubmit ? "brand-gradient brand-glow hover:brightness-110" : ""}`}
           >
             {loading && <Loader2 size={18} className="animate-spin" />}
             {mode === "login" ? "Log in" : "Create account"}
