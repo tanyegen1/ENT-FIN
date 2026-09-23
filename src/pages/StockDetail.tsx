@@ -12,6 +12,7 @@ import { PageHeader } from "../components/PageHeader";
 import { OrderSheet } from "../components/OrderSheet";
 import { LiveDot } from "../components/LiveDot";
 import { StockLogo } from "../components/StockLogo";
+import { StockInsights } from "../components/StockInsights";
 import {
   formatCompactNumber,
   formatCurrency,
@@ -161,6 +162,8 @@ export function StockDetail() {
           ))}
         </div>
       </section>
+
+      <StockInsights stock={stock} range={range} />
 
       <section className="mt-8 px-4 lg:px-6">
         <h2 className="text-lg font-semibold text-ink">About</h2>
