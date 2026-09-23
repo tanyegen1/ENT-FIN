@@ -52,10 +52,13 @@ needed. Leave it on for a real deployment other people will use.
   entirely (same restriction that blocks live stock prices). It always
   falls back to guest/local mode there.
 - **Locally (`npm run dev`)** — everything works once Supabase is configured.
-- **A real deployment** (Vercel, Netlify, etc.) — also fully works. This repo
-  includes `vercel.json` and `public/_redirects` so client-side routes
-  survive a refresh on either host; just set the same env vars in your
-  host's dashboard.
+- **A real deployment** (Vercel, Netlify, etc.) — also fully works; just set
+  the same env vars in your host's dashboard. (Routing uses `HashRouter`
+  — URLs look like `/#/stock/AAPL` — specifically so this also renders
+  correctly inside a sandboxed preview iframe, which restricts the browser
+  History API `BrowserRouter` needs. `vercel.json` / `public/_redirects`
+  are included in case you ever switch to `BrowserRouter` for a real
+  deployment, but aren't required as things stand.)
 
 ## Live data (5 tickers only)
 
@@ -81,7 +84,7 @@ sandbox reason as accounts above.
 
 - React 19 + TypeScript, Vite build
 - Tailwind CSS v4 (dark theme via `@theme` tokens in `src/index.css`)
-- `react-router-dom` (`BrowserRouter`) for routing
+- `react-router-dom` (`HashRouter`) for routing
 - Supabase (`@supabase/supabase-js`) for auth + Postgres persistence — optional
 - `motion` (Framer Motion) for page transitions, shared-layout animations, and springs
 - Hand-rolled SVG charts with pointer-based scrubbing (no charting library)
