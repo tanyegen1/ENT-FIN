@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from "react";
 import { motion } from "motion/react";
-import { SiGoogle } from "@icons-pack/react-simple-icons";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { Logo } from "../components/Logo";
@@ -8,13 +7,12 @@ import { Logo } from "../components/Logo";
 type Mode = "login" | "signup";
 
 export function Login() {
-  const { signUpWithEmail, signInWithEmail, signInWithGoogle, continueAsGuest } = useAuth();
+  const { signUpWithEmail, signInWithEmail, continueAsGuest } = useAuth();
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
@@ -31,21 +29,12 @@ export function Login() {
     setLoading(false);
     if (result.error) {
       setError(result.error);
-    } else if (mode === "signup") {
+    } else if (mode === "signup" && result.needsConfirmation) {
       setInfo("Account created — check your inbox to confirm your email, then log in.");
       setMode("login");
     }
-  };
-
-  const handleGoogle = async () => {
-    setError(null);
-    setGoogleLoading(true);
-    const result = await signInWithGoogle();
-    if (result.error) {
-      setGoogleLoading(false);
-      setError(result.error);
-    }
-    // On success the page redirects to Google, so no further state change here.
+    // If signup succeeded with no confirmation needed, onAuthStateChange
+    // already flips us into the app — nothing further to do here.
   };
 
   return (
@@ -162,27 +151,6 @@ export function Login() {
             {mode === "login" ? "Log in" : "Create account"}
           </motion.button>
         </form>
-
-        <div className="my-5 flex items-center gap-3">
-          <div className="h-px flex-1 bg-border-soft" />
-          <span className="text-[12px] text-ink-faint">or</span>
-          <div className="h-px flex-1 bg-border-soft" />
-        </div>
-
-        <motion.button
-          onClick={handleGoogle}
-          disabled={googleLoading}
-          whileTap={{ scale: 0.98 }}
-          transition={{ duration: 0.12 }}
-          className="flex w-full items-center justify-center gap-2.5 rounded-full bg-white py-3.5 text-[15px] font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-60 cursor-pointer"
-        >
-          {googleLoading ? (
-            <Loader2 size={18} className="animate-spin" />
-          ) : (
-            <SiGoogle size={18} color="#4285F4" />
-          )}
-          Continue with Google
-        </motion.button>
 
         <button
           onClick={continueAsGuest}

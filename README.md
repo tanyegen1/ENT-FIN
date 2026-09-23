@@ -13,12 +13,11 @@ entirely locally, no login required.
 
 ## Accounts & saved data
 
-Sign up / log in with email+password or Google, and your practice portfolio
-(cash, holdings, watchlist, trade and transfer history) is saved to your
-account and follows you across devices. There's also **Continue as guest**
-on the login screen, which skips accounts entirely and saves to this
-browser only (`localStorage`) — the same as how the app behaved before
-accounts existed.
+Sign up / log in with email + password, and your practice portfolio (cash,
+holdings, watchlist, trade and transfer history) is saved to your account
+and follows you across devices. There's also **Continue as guest** on the
+login screen, which skips accounts entirely and saves to this browser only
+(`localStorage`) — the same as how the app behaved before accounts existed.
 
 This needs a free [Supabase](https://supabase.com) project — a real Postgres
 database plus auth, all reachable directly from this static app (no custom
@@ -38,33 +37,20 @@ server needed). Setup:
    VITE_SUPABASE_URL=https://xxxxx.supabase.co
    VITE_SUPABASE_ANON_KEY=eyJ...
    ```
-5. **Restart** `npm run dev`. Email/password auth now works immediately.
+5. **Restart** `npm run dev`. Signup and login now work.
 
-### Enabling "Continue with Google"
-
-Google OAuth always requires *you* to create the credentials — no tool or
-service can do this on your behalf, it's a Google requirement:
-
-1. In the [Google Cloud Console](https://console.cloud.google.com/), create
-   (or pick) a project → **APIs & Services → Credentials → Create
-   Credentials → OAuth client ID** → type **Web application**.
-2. Add an **Authorized redirect URI**. Supabase shows you the exact URL
-   under **Authentication → Providers → Google** in your Supabase
-   dashboard — it looks like
-   `https://<your-project-ref>.supabase.co/auth/v1/callback`.
-3. Copy the generated **Client ID** and **Client Secret**.
-4. Back in Supabase: **Authentication → Providers → Google** → paste both,
-   enable the provider, save.
-
-That's it — no client-side code changes needed; the Google button in the
-app calls Supabase, which handles the OAuth exchange.
+**Optional, for faster testing:** Supabase projects require confirming your
+email before you can log in by default. To skip that while testing, go to
+**Authentication → Providers → Email** in your Supabase dashboard and turn
+off **"Confirm email"** — signup then logs you straight in, no inbox check
+needed. Leave it on for a real deployment other people will use.
 
 ### What won't work where
 
-- **The published Artifact preview link** can't do *any* of this — signup,
-  login, and Google OAuth all require calls to outside APIs, which that
-  sandbox blocks entirely (same restriction that blocks live stock prices).
-  It always falls back to guest/local mode there.
+- **The published Artifact preview link** can't do *any* of this — signup
+  and login both require calls to outside APIs, which that sandbox blocks
+  entirely (same restriction that blocks live stock prices). It always
+  falls back to guest/local mode there.
 - **Locally (`npm run dev`)** — everything works once Supabase is configured.
 - **A real deployment** (Vercel, Netlify, etc.) — also fully works. This repo
   includes `vercel.json` and `public/_redirects` so client-side routes
@@ -104,7 +90,7 @@ sandbox reason as accounts above.
 ## Pages
 
 - **Login** (`/`, shown when signed out and Supabase is configured) — email/password
-  with a login/signup toggle, "Continue with Google", and "Continue as guest".
+  with a login/signup toggle and "Continue as guest".
 - **Home** (`/`) — portfolio value, interactive value chart with range
   tabs (1D/1W/1M/3M/YTD/1Y/5Y/ALL), buying power (deposit/withdraw practice
   cash), holdings list, watchlist preview.

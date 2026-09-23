@@ -16,6 +16,8 @@ export type AuthStatus = "loading" | "unconfigured" | "signed-out" | "guest" | "
 
 interface AuthResult {
   error?: string;
+  /** Set when signup succeeded but Supabase requires clicking an email link before you can log in. */
+  needsConfirmation?: boolean;
 }
 
 interface AuthContextValue {
@@ -23,7 +25,6 @@ interface AuthContextValue {
   user: User | null;
   signUpWithEmail: (email: string, password: string) => Promise<AuthResult>;
   signInWithEmail: (email: string, password: string) => Promise<AuthResult>;
-  signInWithGoogle: () => Promise<AuthResult>;
   signOut: () => Promise<void>;
   continueAsGuest: () => void;
   exitGuestMode: () => void;
@@ -85,22 +86,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUpWithEmail = useCallback(async (email: string, password: string): Promise<AuthResult> => {
     if (!supabase) return { error: "Cloud sync isn't configured." };
-    const { error } = await supabase.auth.signUp({ email, password });
-    return error ? { error: friendlyAuthError(error.message) } : {};
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) return { error: friendlyAuthError(error.message) };
+    // If the project has "Confirm email" off, signUp already returns a live
+    // session — onAuthStateChange picks it up and signs you in immediately.
+    // Otherwise there's no session yet until the confirmation link is clicked.
+    return { needsConfirmation: !data.session };
   }, []);
 
   const signInWithEmail = useCallback(async (email: string, password: string): Promise<AuthResult> => {
     if (!supabase) return { error: "Cloud sync isn't configured." };
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return error ? { error: friendlyAuthError(error.message) } : {};
-  }, []);
-
-  const signInWithGoogle = useCallback(async (): Promise<AuthResult> => {
-    if (!supabase) return { error: "Cloud sync isn't configured." };
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin },
-    });
     return error ? { error: friendlyAuthError(error.message) } : {};
   }, []);
 
@@ -138,12 +134,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       signUpWithEmail,
       signInWithEmail,
-      signInWithGoogle,
       signOut,
       continueAsGuest,
       exitGuestMode,
     }),
-    [status, user, signUpWithEmail, signInWithEmail, signInWithGoogle, signOut, continueAsGuest, exitGuestMode],
+    [status, user, signUpWithEmail, signInWithEmail, signOut, continueAsGuest, exitGuestMode],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
