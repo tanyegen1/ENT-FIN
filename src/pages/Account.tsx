@@ -1,16 +1,23 @@
-import { motion } from "motion/react";
+import { useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
   Banknote,
   Bell,
   ChevronRight,
   FileText,
+  FlaskConical,
   HelpCircle,
   LogOut,
+  RotateCcw,
   ShieldCheck,
   User,
 } from "lucide-react";
 import { usePortfolio } from "../context/PortfolioContext";
+import { ConfirmSheet } from "../components/ConfirmSheet";
 import { formatCurrency, formatCurrencyPrecise, formatShares } from "../lib/format";
+import type { OrderRecord, TransferRecord } from "../types";
 
 const SETTINGS_ROWS = [
   { icon: Banknote, label: "Transfers & banking" },
@@ -20,8 +27,21 @@ const SETTINGS_ROWS = [
   { icon: HelpCircle, label: "Help" },
 ];
 
+type ActivityItem =
+  | { kind: "order"; timestamp: number; data: OrderRecord }
+  | { kind: "transfer"; timestamp: number; data: TransferRecord };
+
 export function Account() {
-  const { cash, equityValue, totalValue, orders } = usePortfolio();
+  const { cash, equityValue, totalValue, orders, transfers, resetPortfolio } = usePortfolio();
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  const activity: ActivityItem[] = useMemo(() => {
+    const items: ActivityItem[] = [
+      ...orders.map((o) => ({ kind: "order" as const, timestamp: o.timestamp, data: o })),
+      ...transfers.map((t) => ({ kind: "transfer" as const, timestamp: t.timestamp, data: t })),
+    ];
+    return items.sort((a, b) => b.timestamp - a.timestamp);
+  }, [orders, transfers]);
 
   return (
     <div className="pb-10">
@@ -32,6 +52,10 @@ export function Account() {
         <div>
           <div className="text-lg font-semibold text-ink">Alex Morgan</div>
           <div className="text-sm text-ink-faint">alex.morgan@example.com</div>
+          <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
+            <FlaskConical size={11} />
+            Paper trading account
+          </span>
         </div>
       </div>
 
@@ -70,6 +94,16 @@ export function Account() {
           </motion.button>
         ))}
         <motion.button
+          onClick={() => setShowResetConfirm(true)}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-left hover:bg-surface-2 cursor-pointer"
+          whileTap={{ scale: 0.98, backgroundColor: "var(--color-surface-2)" }}
+          transition={{ duration: 0.12 }}
+        >
+          <RotateCcw size={20} className="text-ink-dim" />
+          <span className="flex-1 text-[15px] text-ink">Reset practice portfolio</span>
+          <ChevronRight size={18} className="text-ink-faint" />
+        </motion.button>
+        <motion.button
           className="flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-left hover:bg-surface-2 cursor-pointer"
           whileTap={{ scale: 0.98, backgroundColor: "var(--color-surface-2)" }}
           transition={{ duration: 0.12 }}
@@ -80,37 +114,74 @@ export function Account() {
       </div>
 
       <section className="mt-6 px-4 lg:px-6">
-        <h2 className="text-lg font-semibold text-ink">History</h2>
-        {orders.length === 0 && (
+        <h2 className="text-lg font-semibold text-ink">Activity</h2>
+        {activity.length === 0 && (
           <p className="mt-2 text-sm text-ink-faint">
-            Your order history will show up here.
+            Trades and transfers will show up here.
           </p>
         )}
         <div className="mt-2 flex flex-col divide-y divide-border-soft">
-          {orders.map((o) => (
-            <div key={o.id} className="flex items-center justify-between py-3">
-              <div>
+          {activity.map((item) => (
+            <div key={item.data.id} className="flex items-center gap-3 py-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-2 text-ink-dim">
+                {item.kind === "transfer" ? (
+                  item.data.type === "deposit" ? (
+                    <ArrowDownToLine size={15} />
+                  ) : (
+                    <ArrowUpFromLine size={15} />
+                  )
+                ) : item.data.side === "buy" ? (
+                  <ArrowDownToLine size={15} />
+                ) : (
+                  <ArrowUpFromLine size={15} />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
                 <div className="text-[14px] font-medium text-ink">
-                  <span className={o.side === "buy" ? "text-up" : "text-down"}>
-                    {o.side === "buy" ? "Bought" : "Sold"}
-                  </span>{" "}
-                  {o.symbol}
+                  {item.kind === "transfer" ? (
+                    item.data.type === "deposit" ? "Added cash" : "Withdrew cash"
+                  ) : (
+                    <>
+                      <span className={item.data.side === "buy" ? "text-up" : "text-down"}>
+                        {item.data.side === "buy" ? "Bought" : "Sold"}
+                      </span>{" "}
+                      {item.data.symbol}
+                    </>
+                  )}
                 </div>
                 <div className="text-[13px] text-ink-faint">
-                  {formatShares(o.shares)} sh @ {formatCurrencyPrecise(o.price)} ·{" "}
-                  {new Date(o.timestamp).toLocaleDateString(undefined, {
+                  {item.kind === "order" &&
+                    `${formatShares(item.data.shares)} sh @ ${formatCurrencyPrecise(item.data.price)} · `}
+                  {new Date(item.timestamp).toLocaleDateString(undefined, {
                     month: "short",
                     day: "numeric",
                   })}
                 </div>
               </div>
               <div className="text-[14px] font-medium tabular-nums text-ink">
-                {formatCurrency(o.total)}
+                {item.kind === "transfer" && item.data.type === "withdraw" ? "-" : ""}
+                {formatCurrency(item.kind === "transfer" ? item.data.amount : item.data.total)}
               </div>
             </div>
           ))}
         </div>
       </section>
+
+      <AnimatePresence>
+        {showResetConfirm && (
+          <ConfirmSheet
+            title="Reset practice portfolio?"
+            description="This clears your holdings, cash, watchlist, and activity back to the starting practice balance. This can't be undone."
+            confirmLabel="Reset portfolio"
+            danger
+            onConfirm={() => {
+              resetPortfolio();
+              setShowResetConfirm(false);
+            }}
+            onClose={() => setShowResetConfirm(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

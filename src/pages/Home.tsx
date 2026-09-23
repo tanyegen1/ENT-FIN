@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "motion/react";
-import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { ArrowDownToLine, ArrowUpFromLine, FlaskConical } from "lucide-react";
 import { usePortfolio } from "../context/PortfolioContext";
 import { getStock } from "../data/stocks";
 import { getPortfolioHistory } from "../data/portfolioHistory";
@@ -11,6 +11,7 @@ import { RangeTabs } from "../components/RangeTabs";
 import { StockRow } from "../components/StockRow";
 import { PriceChange } from "../components/PriceChange";
 import { Logo } from "../components/Logo";
+import { CashSheet } from "../components/CashSheet";
 import { formatCurrency } from "../lib/format";
 import type { PricePoint, Range } from "../types";
 
@@ -18,6 +19,7 @@ export function Home() {
   const { holdings, cash, totalValue, watchlist } = usePortfolio();
   const [range, setRange] = useState<Range>("1D");
   const [scrub, setScrub] = useState<PricePoint | null>(null);
+  const [cashMode, setCashMode] = useState<"deposit" | "withdraw" | null>(null);
   const liveQuotes = useLiveQuotes();
 
   const history = useMemo(
@@ -59,7 +61,13 @@ export function Home() {
       </div>
 
       <div className="px-4 pt-6 lg:px-6">
-        <div className="text-sm text-ink-faint">Portfolio value</div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-ink-faint">Portfolio value</span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
+            <FlaskConical size={11} />
+            Paper trading
+          </span>
+        </div>
         <div className="mt-1 text-4xl font-semibold tabular-nums text-ink lg:text-5xl">
           {formatCurrency(displayValue)}
         </div>
@@ -93,6 +101,8 @@ export function Home() {
         </div>
         <div className="flex gap-2">
           <motion.button
+            onClick={() => setCashMode("deposit")}
+            aria-label="Add practice cash"
             className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-3 text-ink hover:brightness-125 cursor-pointer"
             whileTap={{ scale: 0.88 }}
             transition={{ duration: 0.12 }}
@@ -100,6 +110,8 @@ export function Home() {
             <ArrowDownToLine size={17} />
           </motion.button>
           <motion.button
+            onClick={() => setCashMode("withdraw")}
+            aria-label="Withdraw cash"
             className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-3 text-ink hover:brightness-125 cursor-pointer"
             whileTap={{ scale: 0.88 }}
             transition={{ duration: 0.12 }}
@@ -108,6 +120,10 @@ export function Home() {
           </motion.button>
         </div>
       </div>
+
+      <AnimatePresence>
+        {cashMode && <CashSheet mode={cashMode} onClose={() => setCashMode(null)} />}
+      </AnimatePresence>
 
       <section className="mt-8">
         <h2 className="px-4 pb-1 text-lg font-semibold text-ink lg:px-6">

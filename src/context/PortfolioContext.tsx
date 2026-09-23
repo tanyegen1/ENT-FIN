@@ -7,23 +7,31 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Holding, OrderRecord } from "../types";
+import type { Holding, OrderRecord, TransferRecord } from "../types";
 import { INITIAL_CASH, INITIAL_HOLDINGS, INITIAL_WATCHLIST } from "../data/portfolio";
 import { getStock } from "../data/stocks";
 import { getLiveStock, startLiveQuotes, useLiveQuotes } from "../data/liveQuotes";
 
 const STORAGE_KEY = "pulse.portfolio.v1";
 
+function makeId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 interface PersistedState {
   cash: number;
   holdings: Holding[];
   watchlist: string[];
   orders: OrderRecord[];
+  transfers: TransferRecord[];
 }
 
 interface PortfolioContextValue extends PersistedState {
   buy: (symbol: string, shares: number, price: number) => void;
   sell: (symbol: string, shares: number, price: number) => void;
+  deposit: (amount: number) => void;
+  withdraw: (amount: number) => boolean;
+  resetPortfolio: () => void;
   toggleWatchlist: (symbol: string) => void;
   isWatched: (symbol: string) => boolean;
   getHolding: (symbol: string) => Holding | undefined;
@@ -33,22 +41,35 @@ interface PortfolioContextValue extends PersistedState {
 
 const PortfolioContext = createContext<PortfolioContextValue | null>(null);
 
-function loadInitial(): PersistedState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as PersistedState;
-      if (parsed && Array.isArray(parsed.holdings)) return parsed;
-    }
-  } catch {
-    // ignore corrupted storage
-  }
+function defaultState(): PersistedState {
   return {
     cash: INITIAL_CASH,
     holdings: INITIAL_HOLDINGS,
     watchlist: INITIAL_WATCHLIST,
     orders: [],
+    transfers: [],
   };
+}
+
+function loadInitial(): PersistedState {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<PersistedState>;
+      if (parsed && Array.isArray(parsed.holdings)) {
+        return {
+          cash: parsed.cash ?? INITIAL_CASH,
+          holdings: parsed.holdings,
+          watchlist: parsed.watchlist ?? INITIAL_WATCHLIST,
+          orders: parsed.orders ?? [],
+          transfers: parsed.transfers ?? [],
+        };
+      }
+    }
+  } catch {
+    // ignore corrupted storage
+  }
+  return defaultState();
 }
 
 export function PortfolioProvider({ children }: { children: ReactNode }) {
@@ -84,7 +105,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         holdings = [...prev.holdings, { symbol, shares, avgCost: price }];
       }
       const order: OrderRecord = {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        id: makeId(),
         symbol,
         side: "buy",
         shares,
@@ -114,7 +135,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
               h.symbol === symbol ? { ...h, shares: remaining } : h,
             );
       const order: OrderRecord = {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        id: makeId(),
         symbol,
         side: "sell",
         shares,
@@ -129,6 +150,39 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         orders: [order, ...prev.orders],
       };
     });
+  }, []);
+
+  const deposit = useCallback((amount: number) => {
+    if (amount <= 0) return;
+    setState((prev) => {
+      const transfer: TransferRecord = {
+        id: makeId(),
+        type: "deposit",
+        amount,
+        timestamp: Date.now(),
+      };
+      return { ...prev, cash: prev.cash + amount, transfers: [transfer, ...prev.transfers] };
+    });
+  }, []);
+
+  const withdraw = useCallback((amount: number): boolean => {
+    let succeeded = false;
+    setState((prev) => {
+      if (amount <= 0 || amount > prev.cash + 0.005) return prev;
+      succeeded = true;
+      const transfer: TransferRecord = {
+        id: makeId(),
+        type: "withdraw",
+        amount,
+        timestamp: Date.now(),
+      };
+      return { ...prev, cash: prev.cash - amount, transfers: [transfer, ...prev.transfers] };
+    });
+    return succeeded;
+  }, []);
+
+  const resetPortfolio = useCallback(() => {
+    setState(defaultState());
   }, []);
 
   const toggleWatchlist = useCallback((symbol: string) => {
@@ -166,6 +220,9 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     ...state,
     buy,
     sell,
+    deposit,
+    withdraw,
+    resetPortfolio,
     toggleWatchlist,
     isWatched,
     getHolding,

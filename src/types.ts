@@ -37,3 +37,10 @@ export interface OrderRecord {
   total: number;
   timestamp: number;
 }
+
+export interface TransferRecord {
+  id: string;
+  type: "deposit" | "withdraw";
+  amount: number;
+  timestamp: number;
+}

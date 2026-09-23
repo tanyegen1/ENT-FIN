@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { X, Check } from "lucide-react";
+import { X } from "lucide-react";
 import clsx from "clsx";
 import type { Stock } from "../types";
 import { Keypad } from "./Keypad";
+import { SuccessBurst } from "./SuccessBurst";
 import { usePortfolio } from "../context/PortfolioContext";
+import { useCountUp } from "../hooks/useCountUp";
 import { formatCurrency, formatCurrencyPrecise, formatShares } from "../lib/format";
 
 const SHEET_SPRING = { type: "spring", stiffness: 420, damping: 38 } as const;
@@ -252,29 +254,51 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
           </div>
         )}
 
-        {step === "success" && (
-          <div className="flex flex-col items-center gap-4 px-6 py-12 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-up-soft">
-              <Check size={32} className="text-up" strokeWidth={2.5} />
-            </div>
-            <div className="text-xl font-semibold text-ink">
-              {side === "buy" ? "Bought" : "Sold"} {formatShares(shares)} shares
-            </div>
-            <div className="text-ink-faint">
-              {stock.symbol} · {formatCurrency(cost)} at market price
-            </div>
-            <button
-              onClick={onClose}
-              className="mt-4 w-full rounded-full bg-surface-2 py-3.5 text-[15px] font-semibold text-ink hover:bg-surface-3 cursor-pointer"
-            >
-              Done
-            </button>
-          </div>
-        )}
+        {step === "success" && <SuccessStep side={side} shares={shares} cost={cost} stock={stock} onClose={onClose} />}
 
         </motion.div>
         </AnimatePresence>
       </motion.div>
+    </div>
+  );
+}
+
+interface SuccessStepProps {
+  side: Side;
+  shares: number;
+  cost: number;
+  stock: Stock;
+  onClose: () => void;
+}
+
+function SuccessStep({ side, shares, cost, stock, onClose }: SuccessStepProps) {
+  const animatedCost = useCountUp(cost, 650);
+
+  return (
+    <div className="flex flex-col items-center gap-4 px-6 py-12 text-center">
+      <SuccessBurst />
+
+      <div>
+        <div className="text-sm font-medium text-ink-faint capitalize">
+          {side === "buy" ? "Bought" : "Sold"} · {stock.symbol}
+        </div>
+        <div className="mt-1 text-4xl font-semibold tabular-nums text-ink">
+          {formatCurrency(animatedCost)}
+        </div>
+      </div>
+
+      <div className="text-ink-faint">
+        {formatShares(shares)} shares at {formatCurrencyPrecise(stock.price)}
+      </div>
+
+      <motion.button
+        onClick={onClose}
+        className="mt-4 w-full rounded-full bg-surface-2 py-3.5 text-[15px] font-semibold text-ink hover:bg-surface-3 cursor-pointer"
+        whileTap={{ scale: 0.97 }}
+        transition={{ duration: 0.12 }}
+      >
+        Done
+      </motion.button>
     </div>
   );
 }
