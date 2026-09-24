@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { ArrowDownToLine, ArrowUpFromLine, FlaskConical } from "lucide-react";
 import { usePortfolio } from "../context/PortfolioContext";
 import { useAuth } from "../context/AuthContext";
+import { useOnboarding } from "../context/OnboardingContext";
 import { getStock } from "../data/stocks";
 import { getPortfolioHistory } from "../data/portfolioHistory";
 import { useLiveQuotes } from "../data/liveQuotes";
@@ -13,12 +14,14 @@ import { StockRow } from "../components/StockRow";
 import { PriceChange } from "../components/PriceChange";
 import { Logo } from "../components/Logo";
 import { CashSheet } from "../components/CashSheet";
+import { GettingStartedCard } from "../components/GettingStartedCard";
 import { formatCurrency } from "../lib/format";
 import type { PricePoint, Range } from "../types";
 
 export function Home() {
   const { holdings, cash, totalValue, watchlist } = usePortfolio();
   const { user } = useAuth();
+  const { profile, dismissTips } = useOnboarding();
   const [range, setRange] = useState<Range>("1D");
   const [scrub, setScrub] = useState<PricePoint | null>(null);
   const [cashMode, setCashMode] = useState<"deposit" | "withdraw" | null>(null);
@@ -137,6 +140,16 @@ export function Home() {
 
       <AnimatePresence>
         {cashMode && <CashSheet mode={cashMode} onClose={() => setCashMode(null)} />}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {profile.experience === "new" && !profile.tipsDismissed && (
+          <GettingStartedCard
+            goal={profile.goal}
+            onOpenDeposit={() => setCashMode("deposit")}
+            onDismiss={dismissTips}
+          />
+        )}
       </AnimatePresence>
 
       <section className="mt-8">

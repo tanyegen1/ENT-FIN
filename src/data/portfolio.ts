@@ -2,6 +2,9 @@ import type { Holding } from "../types";
 
 export const INITIAL_CASH = 4250.32;
 
+/** Starting buying power for a brand-new empty practice account. */
+export const EMPTY_START_CASH = 5000;
+
 export const INITIAL_HOLDINGS: Holding[] = [
   { symbol: "AAPL", shares: 12, avgCost: 189.42 },
   { symbol: "TSLA", shares: 8, avgCost: 221.1 },

@@ -1,5 +1,6 @@
 import { Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { OnboardingProvider, useOnboarding } from "./context/OnboardingContext";
 import { PortfolioProvider } from "./context/PortfolioContext";
 import { NavShell } from "./components/NavShell";
 import { Home } from "./pages/Home";
@@ -8,10 +9,12 @@ import { Lists } from "./pages/Lists";
 import { Account } from "./pages/Account";
 import { StockDetail } from "./pages/StockDetail";
 import { Login } from "./pages/Login";
+import { Onboarding } from "./pages/Onboarding";
 import { Logo } from "./components/Logo";
 
 function AppRoutes() {
   const { status } = useAuth();
+  const { completed } = useOnboarding();
 
   if (status === "loading") {
     return (
@@ -23,6 +26,10 @@ function AppRoutes() {
 
   if (status === "signed-out") {
     return <Login />;
+  }
+
+  if (!completed) {
+    return <Onboarding />;
   }
 
   return (
@@ -43,7 +50,9 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <OnboardingProvider>
+        <AppRoutes />
+      </OnboardingProvider>
     </AuthProvider>
   );
 }

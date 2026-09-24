@@ -44,3 +44,5 @@ export interface TransferRecord {
   amount: number;
   timestamp: number;
 }
+
+export type AccountMode = "empty" | "sample";

@@ -8,11 +8,12 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Holding, OrderRecord, TransferRecord } from "../types";
-import { INITIAL_CASH, INITIAL_HOLDINGS, INITIAL_WATCHLIST } from "../data/portfolio";
+import type { AccountMode, Holding, OrderRecord, TransferRecord } from "../types";
+import { EMPTY_START_CASH, INITIAL_CASH, INITIAL_HOLDINGS, INITIAL_WATCHLIST } from "../data/portfolio";
 import { getStock } from "../data/stocks";
 import { getLiveStock, startLiveQuotes, useLiveQuotes } from "../data/liveQuotes";
 import { useAuth } from "./AuthContext";
+import { useOnboarding } from "./OnboardingContext";
 import { createPortfolio, fetchPortfolio, savePortfolio } from "../lib/portfolioService";
 import { Logo } from "../components/Logo";
 
@@ -48,17 +49,26 @@ interface PortfolioContextValue extends PersistedState {
 
 const PortfolioContext = createContext<PortfolioContextValue | null>(null);
 
-function defaultState(): PersistedState {
+function defaultState(mode: AccountMode): PersistedState {
+  if (mode === "sample") {
+    return {
+      cash: INITIAL_CASH,
+      holdings: INITIAL_HOLDINGS,
+      watchlist: INITIAL_WATCHLIST,
+      orders: [],
+      transfers: [],
+    };
+  }
   return {
-    cash: INITIAL_CASH,
-    holdings: INITIAL_HOLDINGS,
+    cash: EMPTY_START_CASH,
+    holdings: [],
     watchlist: INITIAL_WATCHLIST,
     orders: [],
     transfers: [],
   };
 }
 
-function loadLocal(): PersistedState {
+function loadLocal(mode: AccountMode): PersistedState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -76,14 +86,16 @@ function loadLocal(): PersistedState {
   } catch {
     // ignore corrupted storage
   }
-  return defaultState();
+  return defaultState(mode);
 }
 
 export function PortfolioProvider({ children }: { children: ReactNode }) {
   const { status, user } = useAuth();
+  const { profile } = useOnboarding();
+  const mode = profile.mode;
   const isCloud = status === "signed-in" && !!user;
 
-  const [state, setState] = useState<PersistedState>(() => (isCloud ? defaultState() : loadLocal()));
+  const [state, setState] = useState<PersistedState>(() => (isCloud ? defaultState(mode) : loadLocal(mode)));
   const [loaded, setLoaded] = useState(!isCloud);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(isCloud ? "saving" : "local");
   const skipNextSaveRef = useRef(false);
@@ -110,7 +122,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
           setState(remote);
           setSyncStatus("synced");
         } else {
-          const initial = defaultState();
+          const initial = defaultState(mode);
           setState(initial);
           try {
             await createPortfolio(user.id, initial);
@@ -132,7 +144,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     const timeout = setTimeout(() => {
       if (!settled && !cancelled) {
         skipNextSaveRef.current = true;
-        setState(defaultState());
+        setState(defaultState(mode));
         setSyncStatus("error");
         setLoaded(true);
       }
@@ -142,7 +154,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       clearTimeout(timeout);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run only when switching cloud users
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run only when switching cloud users, not on every mode/state change
   }, [isCloud, user?.id]);
 
   // Persist on every change — cloud upsert for signed-in users, localStorage for guests.
@@ -260,8 +272,8 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const resetPortfolio = useCallback(() => {
-    setState(defaultState());
-  }, []);
+    setState(defaultState(mode));
+  }, [mode]);
 
   const toggleWatchlist = useCallback((symbol: string) => {
     setState((prev) => ({
