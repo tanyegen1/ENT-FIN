@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import clsx from "clsx";
-import { House, Search, ListChecks, CircleUser } from "lucide-react";
+import { House, Search, ListChecks, CircleUser, Globe } from "lucide-react";
 import { Logo } from "./Logo";
+import { LocaleCurrencySheet } from "./LocaleCurrencySheet";
+import { useLocale } from "../context/LocaleContext";
+import { useCurrency } from "../context/CurrencyContext";
 
 const TAB_TRANSITION = {
   initial: { opacity: 0, y: 10 },
@@ -25,14 +29,17 @@ function getPageTransition(pathname: string) {
 }
 
 const NAV_ITEMS = [
-  { to: "/", label: "Home", icon: House, end: true },
-  { to: "/search", label: "Search", icon: Search, end: false },
-  { to: "/lists", label: "Lists", icon: ListChecks, end: false },
-  { to: "/account", label: "Account", icon: CircleUser, end: false },
+  { to: "/", labelKey: "nav.home", icon: House, end: true },
+  { to: "/search", labelKey: "nav.search", icon: Search, end: false },
+  { to: "/lists", labelKey: "nav.lists", icon: ListChecks, end: false },
+  { to: "/account", labelKey: "nav.account", icon: CircleUser, end: false },
 ];
 
 export function NavShell() {
   const location = useLocation();
+  const { locale, t } = useLocale();
+  const { displayCurrency } = useCurrency();
+  const [showLocaleSheet, setShowLocaleSheet] = useState(false);
 
   return (
     <LayoutGroup>
@@ -59,10 +66,17 @@ export function NavShell() {
                 }
               >
                 <item.icon size={22} strokeWidth={2} />
-                {item.label}
+                {t(item.labelKey)}
               </NavLink>
             ))}
           </nav>
+          <button
+            onClick={() => setShowLocaleSheet(true)}
+            className="mt-auto flex items-center gap-2 rounded-xl px-3 py-2.5 text-[13px] font-medium text-ink-faint hover:bg-surface-2 hover:text-ink-dim cursor-pointer"
+          >
+            <Globe size={18} />
+            {locale.toUpperCase()} · {displayCurrency === "USD" ? "$" : "₺"}
+          </button>
         </aside>
 
         {/* Main content */}
@@ -95,13 +109,16 @@ export function NavShell() {
                   transition={{ duration: 0.15 }}
                 >
                   <item.icon size={24} strokeWidth={isActive ? 2.4 : 2} />
-                  {item.label}
+                  {t(item.labelKey)}
                 </motion.span>
               )}
             </NavLink>
           ))}
         </nav>
       </div>
+      <AnimatePresence>
+        {showLocaleSheet && <LocaleCurrencySheet onClose={() => setShowLocaleSheet(false)} />}
+      </AnimatePresence>
     </LayoutGroup>
   );
 }

@@ -1,5 +1,7 @@
 export type Range = "1D" | "1W" | "1M" | "3M" | "YTD" | "1Y" | "5Y" | "ALL";
 
+export type AssetCategory = "stock" | "fund" | "crypto";
+
 export interface Stock {
   symbol: string;
   name: string;
@@ -7,6 +9,9 @@ export interface Stock {
   prevClose: number;
   color: string;
   sector: string;
+  category: AssetCategory;
+  /** Everyday-language search terms (in English and Turkish) so a beginner can find a stock without knowing its ticker. */
+  aliases: string[];
   marketCap: number;
   peRatio: number | null;
   divYield: number | null;

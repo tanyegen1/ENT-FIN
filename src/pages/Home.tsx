@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ComponentType } from "react";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowDownToLine, ArrowUpFromLine, FlaskConical } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Globe, TrendingUp } from "lucide-react";
 import { usePortfolio } from "../context/PortfolioContext";
 import { useAuth } from "../context/AuthContext";
-import { useOnboarding } from "../context/OnboardingContext";
+import { useLocale } from "../context/LocaleContext";
+import { useCurrency } from "../context/CurrencyContext";
 import { getStock } from "../data/stocks";
 import { getPortfolioHistory } from "../data/portfolioHistory";
 import { useLiveQuotes } from "../data/liveQuotes";
@@ -14,17 +15,55 @@ import { StockRow } from "../components/StockRow";
 import { PriceChange } from "../components/PriceChange";
 import { Logo } from "../components/Logo";
 import { CashSheet } from "../components/CashSheet";
-import { GettingStartedCard } from "../components/GettingStartedCard";
-import { formatCurrency } from "../lib/format";
+import { LocaleCurrencySheet } from "../components/LocaleCurrencySheet";
+import { NextStepCard } from "../components/NextStepCard";
+import { RecentActivityCard } from "../components/RecentActivityCard";
 import type { PricePoint, Range } from "../types";
 
+interface ActionButtonProps {
+  icon: ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  onClick?: () => void;
+  to?: string;
+}
+
+function ActionButton({ icon: Icon, label, onClick, to }: ActionButtonProps) {
+  const content = (
+    <>
+      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-2">
+        <Icon size={20} className="text-brand-light" />
+      </div>
+      <span className="mt-1.5 text-[12px] font-medium text-ink-dim">{label}</span>
+    </>
+  );
+  if (to) {
+    return (
+      <Link to={to} className="flex flex-1 flex-col items-center">
+        {content}
+      </Link>
+    );
+  }
+  return (
+    <motion.button
+      onClick={onClick}
+      whileTap={{ scale: 0.94 }}
+      transition={{ duration: 0.12 }}
+      className="flex flex-1 flex-col items-center cursor-pointer"
+    >
+      {content}
+    </motion.button>
+  );
+}
+
 export function Home() {
-  const { holdings, cash, totalValue, watchlist } = usePortfolio();
+  const { holdings, cash, equityValue, totalValue, watchlist, orders, transfers } = usePortfolio();
   const { user } = useAuth();
-  const { profile, dismissTips } = useOnboarding();
+  const { t } = useLocale();
+  const { displayCurrency, formatDisplay } = useCurrency();
   const [range, setRange] = useState<Range>("1D");
   const [scrub, setScrub] = useState<PricePoint | null>(null);
   const [cashMode, setCashMode] = useState<"deposit" | "withdraw" | null>(null);
+  const [showLocaleSheet, setShowLocaleSheet] = useState(false);
   const liveQuotes = useLiveQuotes();
 
   const history = useMemo(
@@ -39,27 +78,41 @@ export function Home() {
   const diffPercent = startValue !== 0 ? (diff / startValue) * 100 : 0;
   const positive = diff >= 0;
 
-  const rangeLabel: Record<Range, string> = {
-    "1D": "Today",
-    "1W": "Past week",
-    "1M": "Past month",
-    "3M": "Past 3 months",
-    YTD: "Year to date",
-    "1Y": "Past year",
-    "5Y": "Past 5 years",
-    ALL: "All time",
-  };
+  const costBasis = useMemo(
+    () => holdings.reduce((sum, h) => sum + h.avgCost * h.shares, 0),
+    [holdings],
+  );
+  const investmentGain = equityValue - costBasis;
+  const investmentGainPercent = costBasis > 0 ? (investmentGain / costBasis) * 100 : 0;
+
+  const latestActivity = useMemo(() => {
+    const items = [
+      ...orders.map((o) => ({ kind: "order" as const, timestamp: o.timestamp, data: o })),
+      ...transfers.map((t2) => ({ kind: "transfer" as const, timestamp: t2.timestamp, data: t2 })),
+    ];
+    items.sort((a, b) => b.timestamp - a.timestamp);
+    return items[0] ?? null;
+  }, [orders, transfers]);
+
+  const isNewWithNoActivity = latestActivity === null;
 
   return (
     <div className="pb-8">
-      <div className="flex items-center justify-between px-4 pt-5 lg:px-6">
+      <div className="flex items-center justify-between gap-2 px-4 pt-5 lg:px-6">
         <div className="flex items-center gap-2 lg:hidden">
           <Logo size={20} />
           <span className="text-base font-semibold text-ink">Arvo</span>
         </div>
+        <button
+          onClick={() => setShowLocaleSheet(true)}
+          className="ml-auto flex items-center gap-1.5 rounded-full bg-surface-2 px-2.5 py-1.5 text-[11px] font-semibold text-ink-dim hover:bg-surface-3 cursor-pointer lg:hidden"
+        >
+          <Globe size={13} />
+          {displayCurrency === "USD" ? "$" : "₺"}
+        </button>
         <Link
           to="/account"
-          className="ml-auto flex h-9 w-9 items-center justify-center overflow-hidden rounded-full brand-gradient text-sm font-semibold text-white lg:hidden"
+          className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full brand-gradient text-sm font-semibold text-white lg:hidden"
         >
           {(() => {
             const meta = (user?.user_metadata ?? {}) as Record<string, string | undefined>;
@@ -73,26 +126,55 @@ export function Home() {
         </Link>
       </div>
 
+      {/* Q1: How much do I have? */}
       <div className="relative px-4 pt-6 lg:px-6">
         <div
           className="pointer-events-none absolute -top-10 left-1/2 h-48 w-[120%] -translate-x-1/2 rounded-full blur-3xl"
           style={{ backgroundColor: "var(--color-brand)", opacity: 0.08 }}
         />
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-ink-faint">Portfolio value</span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
-            <FlaskConical size={11} />
-            Paper trading
-          </span>
-        </div>
+        <span className="text-sm text-ink-faint">{t("home.totalBalance")}</span>
         <div className="mt-1 text-4xl font-semibold tabular-nums text-ink lg:text-5xl">
-          {formatCurrency(displayValue)}
+          {formatDisplay(displayValue)}
         </div>
         <div className="mt-1.5 flex items-center gap-2">
-          <PriceChange amount={diff} percent={diffPercent} size="md" />
-          <span className="text-sm text-ink-faint">
-            {scrub ? "" : rangeLabel[range]}
-          </span>
+          <PriceChange amount={diff} percent={diffPercent} size="md" formatAmount={formatDisplay} />
+          <span className="text-sm text-ink-faint">{scrub ? "" : t("home.todayLabel")}</span>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <div className="rounded-xl bg-surface-2 px-3.5 py-3">
+            <div className="text-[12px] text-ink-faint">{t("home.invested")}</div>
+            <div className="mt-0.5 text-[15px] font-semibold tabular-nums text-ink">
+              {formatDisplay(equityValue)}
+            </div>
+          </div>
+          <div className="rounded-xl bg-surface-2 px-3.5 py-3">
+            <div className="text-[12px] text-ink-faint">{t("home.cashAvailable")}</div>
+            <div className="mt-0.5 text-[15px] font-semibold tabular-nums text-ink">
+              {formatDisplay(cash)}
+            </div>
+          </div>
+        </div>
+
+        {/* Q2: How am I doing? — investment gain/loss, kept separate from cash added */}
+        <div className="mt-2 rounded-xl bg-surface-2 px-3.5 py-3">
+          <div className="text-[12px] text-ink-faint">{t("home.gainLoss")}</div>
+          <div className="mt-0.5">
+            <PriceChange
+              amount={investmentGain}
+              percent={investmentGainPercent}
+              size="sm"
+              formatAmount={formatDisplay}
+            />
+          </div>
+          <div className="mt-1 text-[11px] text-ink-faint">{t("home.gainLossHint")}</div>
+        </div>
+
+        {/* Q3: What can I do next? */}
+        <div className="mt-4 flex gap-1">
+          <ActionButton icon={ArrowDownToLine} label={t("home.addMoney")} onClick={() => setCashMode("deposit")} />
+          <ActionButton icon={TrendingUp} label={t("home.invest")} to="/search" />
+          <ActionButton icon={ArrowUpFromLine} label={t("home.withdraw")} onClick={() => setCashMode("withdraw")} />
         </div>
       </div>
 
@@ -100,7 +182,7 @@ export function Home() {
         <InteractiveChart
           data={history}
           positive={positive}
-          height={240}
+          height={200}
           onScrub={(p) => setScrub(p)}
         />
       </div>
@@ -109,58 +191,29 @@ export function Home() {
         <RangeTabs value={range} onChange={setRange} positive={positive} />
       </div>
 
-      <div className="mx-4 mt-6 flex items-center justify-between rounded-2xl bg-surface-2 px-4 py-3.5 lg:mx-6">
-        <div>
-          <div className="text-[13px] text-ink-faint">Buying power</div>
-          <div className="text-[17px] font-semibold tabular-nums text-ink">
-            {formatCurrency(cash)}
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <motion.button
-            onClick={() => setCashMode("deposit")}
-            aria-label="Add practice cash"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-3 text-brand-light hover:brightness-125 cursor-pointer"
-            whileTap={{ scale: 0.88 }}
-            transition={{ duration: 0.12 }}
-          >
-            <ArrowDownToLine size={17} />
-          </motion.button>
-          <motion.button
-            onClick={() => setCashMode("withdraw")}
-            aria-label="Withdraw cash"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-3 text-brand-light hover:brightness-125 cursor-pointer"
-            whileTap={{ scale: 0.88 }}
-            transition={{ duration: 0.12 }}
-          >
-            <ArrowUpFromLine size={17} />
-          </motion.button>
-        </div>
-      </div>
-
       <AnimatePresence>
         {cashMode && <CashSheet mode={cashMode} onClose={() => setCashMode(null)} />}
       </AnimatePresence>
-
       <AnimatePresence>
-        {profile.experience === "new" && !profile.tipsDismissed && (
-          <GettingStartedCard
-            goal={profile.goal}
-            onOpenDeposit={() => setCashMode("deposit")}
-            onDismiss={dismissTips}
-          />
+        {showLocaleSheet && <LocaleCurrencySheet onClose={() => setShowLocaleSheet(false)} />}
+      </AnimatePresence>
+
+      {/* One contextual card — never both, to keep Home focused. */}
+      <AnimatePresence>
+        {isNewWithNoActivity ? (
+          <NextStepCard key="next-step" hasCash={cash > 0} onAddMoney={() => setCashMode("deposit")} />
+        ) : (
+          <RecentActivityCard key="recent-activity" item={latestActivity} />
         )}
       </AnimatePresence>
 
       <section className="mt-8">
         <h2 className="px-4 pb-1 text-lg font-semibold text-ink lg:px-6">
-          Investing
+          {t("home.investingHeading")}
         </h2>
         <div className="px-2 lg:px-4">
           {holdings.length === 0 && (
-            <p className="px-2 py-6 text-sm text-ink-faint">
-              You don't own any stocks yet. Search to make your first trade.
-            </p>
+            <p className="px-2 py-6 text-sm text-ink-faint">{t("home.emptyHoldings")}</p>
           )}
           {holdings.map((h) => {
             const stock = getStock(h.symbol);
@@ -173,9 +226,9 @@ export function Home() {
       {watchlist.length > 0 && (
         <section className="mt-6">
           <div className="flex items-center justify-between px-4 pb-1 lg:px-6">
-            <h2 className="text-lg font-semibold text-ink">Watchlist</h2>
+            <h2 className="text-lg font-semibold text-ink">{t("home.watchlistHeading")}</h2>
             <Link to="/lists" className="text-sm font-medium text-brand-light hover:brightness-125">
-              See all
+              {t("home.seeAll")}
             </Link>
           </div>
           <div className="px-2 lg:px-4">

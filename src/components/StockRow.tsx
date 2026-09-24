@@ -1,21 +1,26 @@
 import { Link } from "react-router-dom";
 import { motion } from "motion/react";
 import type { Stock } from "../types";
-import { formatCurrencyPrecise, formatShares } from "../lib/format";
+import { formatShares } from "../lib/format";
 import { Sparkline } from "./Sparkline";
 import { StockLogo } from "./StockLogo";
 import { LiveDot } from "./LiveDot";
 import { getPriceHistory } from "../data/priceHistory";
 import { isLiveSymbol, useLiveQuotes } from "../data/liveQuotes";
 import { usePortfolio } from "../context/PortfolioContext";
+import { useCurrency } from "../context/CurrencyContext";
+import { useLocale } from "../context/LocaleContext";
 
 interface StockRowProps {
   stock: Stock;
   subtitle?: string;
+  onClick?: () => void;
 }
 
-export function StockRow({ stock: baseStock, subtitle }: StockRowProps) {
+export function StockRow({ stock: baseStock, subtitle, onClick }: StockRowProps) {
   const { getHolding } = usePortfolio();
+  const { formatDisplay } = useCurrency();
+  const { t } = useLocale();
   const holding = getHolding(baseStock.symbol);
   const { quotes } = useLiveQuotes();
   const liveQuote = isLiveSymbol(baseStock.symbol) ? quotes[baseStock.symbol] : undefined;
@@ -25,7 +30,7 @@ export function StockRow({ stock: baseStock, subtitle }: StockRowProps) {
   const history = getPriceHistory(stock.symbol, "1D", liveQuote?.price);
 
   return (
-    <Link to={`/stock/${stock.symbol}`} className="block rounded-xl">
+    <Link to={`/stock/${stock.symbol}`} onClick={onClick} className="block rounded-xl">
       <motion.div
         className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2 transition-colors rounded-xl"
         whileTap={{ scale: 0.98, backgroundColor: "var(--color-surface-2)" }}
@@ -38,7 +43,7 @@ export function StockRow({ stock: baseStock, subtitle }: StockRowProps) {
             <LiveDot symbol={stock.symbol} />
           </div>
           <div className="truncate text-[13px] text-ink-faint">
-            {subtitle ?? (holding ? `${formatShares(holding.shares)} shares` : stock.name)}
+            {subtitle ?? (holding ? `${formatShares(holding.shares)} ${t("common.shares")}` : stock.name)}
           </div>
         </div>
         <div className="shrink-0">
@@ -46,7 +51,7 @@ export function StockRow({ stock: baseStock, subtitle }: StockRowProps) {
         </div>
         <div className="w-24 shrink-0 text-right">
           <div className="text-[15px] font-medium tabular-nums text-ink">
-            {formatCurrencyPrecise(stock.price)}
+            {formatDisplay(stock.price, { precise: true })}
           </div>
           <div
             className={`text-[13px] tabular-nums font-medium ${positive ? "text-up" : "text-down"}`}

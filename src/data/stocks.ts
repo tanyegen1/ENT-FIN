@@ -8,6 +8,8 @@ export const STOCKS: Stock[] = [
     prevClose: 224.31,
     color: "#a3aaae",
     sector: "Technology",
+    category: "stock",
+    aliases: ["iphone", "iphone maker", "mac", "ipad", "apple", "app store", "iphone üreticisi", "elma"],
     marketCap: 3_450_000_000_000,
     peRatio: 34.2,
     divYield: 0.44,
@@ -25,6 +27,17 @@ export const STOCKS: Stock[] = [
     prevClose: 259.14,
     color: "#e82127",
     sector: "Automotive",
+    category: "stock",
+    aliases: [
+      "elon musk",
+      "electric car",
+      "ev maker",
+      "electric vehicle",
+      "model 3",
+      "model y",
+      "elektrikli araba",
+      "tesla",
+    ],
     marketCap: 792_000_000_000,
     peRatio: 68.5,
     divYield: null,
@@ -42,6 +55,8 @@ export const STOCKS: Stock[] = [
     prevClose: 132.85,
     color: "#76b900",
     sector: "Technology",
+    category: "stock",
+    aliases: ["ai chips", "graphics card", "gpu maker", "artificial intelligence chips", "yapay zeka çipleri", "ekran kartı"],
     marketCap: 3_390_000_000_000,
     peRatio: 56.1,
     divYield: 0.03,
@@ -59,6 +74,16 @@ export const STOCKS: Stock[] = [
     prevClose: 195.02,
     color: "#ff9900",
     sector: "Consumer Discretionary",
+    category: "stock",
+    aliases: [
+      "online shopping",
+      "aws",
+      "amazon prime",
+      "cloud computing",
+      "e-commerce",
+      "online alışveriş",
+      "amazon",
+    ],
     marketCap: 2_080_000_000_000,
     peRatio: 41.8,
     divYield: null,
@@ -76,6 +101,8 @@ export const STOCKS: Stock[] = [
     prevClose: 431.9,
     color: "#00a4ef",
     sector: "Technology",
+    category: "stock",
+    aliases: ["windows", "office", "azure", "xbox", "copilot", "microsoft"],
     marketCap: 3_190_000_000_000,
     peRatio: 35.6,
     divYield: 0.72,
@@ -93,6 +120,8 @@ export const STOCKS: Stock[] = [
     prevClose: 169.88,
     color: "#4285f4",
     sector: "Communication Services",
+    category: "stock",
+    aliases: ["google", "youtube", "search engine", "android", "gmail", "arama motoru"],
     marketCap: 2_120_000_000_000,
     peRatio: 24.9,
     divYield: 0.44,
@@ -110,6 +139,8 @@ export const STOCKS: Stock[] = [
     prevClose: 601.34,
     color: "#0866ff",
     sector: "Communication Services",
+    category: "stock",
+    aliases: ["facebook", "instagram", "whatsapp", "social media", "sosyal medya", "meta"],
     marketCap: 1_500_000_000_000,
     peRatio: 27.3,
     divYield: 0.34,
@@ -127,6 +158,8 @@ export const STOCKS: Stock[] = [
     prevClose: 141.02,
     color: "#ed1c24",
     sector: "Technology",
+    category: "stock",
+    aliases: ["computer chips", "processors", "ryzen", "işlemci", "bilgisayar çipleri"],
     marketCap: 224_000_000_000,
     peRatio: 108.4,
     divYield: null,
@@ -144,6 +177,8 @@ export const STOCKS: Stock[] = [
     prevClose: 241.15,
     color: "#0052ff",
     sector: "Financial Services",
+    category: "stock",
+    aliases: ["crypto exchange", "bitcoin exchange", "buy crypto", "kripto borsası", "coinbase"],
     marketCap: 63_400_000_000,
     peRatio: 39.7,
     divYield: null,
@@ -161,6 +196,8 @@ export const STOCKS: Stock[] = [
     prevClose: 772.15,
     color: "#e50914",
     sector: "Communication Services",
+    category: "stock",
+    aliases: ["streaming", "netflix shows", "tv streaming", "dizi film izleme"],
     marketCap: 335_000_000_000,
     peRatio: 44.1,
     divYield: null,
@@ -178,6 +215,8 @@ export const STOCKS: Stock[] = [
     prevClose: 113.9,
     color: "#113ccf",
     sector: "Communication Services",
+    category: "stock",
+    aliases: ["disney", "disney plus", "theme parks", "marvel", "pixar", "disney parkları"],
     marketCap: 202_000_000_000,
     peRatio: 19.6,
     divYield: 0.93,
@@ -195,6 +234,8 @@ export const STOCKS: Stock[] = [
     prevClose: 75.9,
     color: "#0f1a2b",
     sector: "Technology",
+    category: "stock",
+    aliases: ["data analytics", "government software", "palantir", "veri analitiği"],
     marketCap: 184_000_000_000,
     peRatio: 189.3,
     divYield: null,
@@ -212,6 +253,8 @@ export const STOCKS: Stock[] = [
     prevClose: 310.02,
     color: "#1a1f71",
     sector: "Financial Services",
+    category: "stock",
+    aliases: ["visa", "credit card company", "payments", "kredi kartı şirketi", "ödeme sistemleri"],
     marketCap: 645_000_000_000,
     peRatio: 31.4,
     divYield: 0.7,
@@ -229,6 +272,8 @@ export const STOCKS: Stock[] = [
     prevClose: 231.5,
     color: "#5a2d81",
     sector: "Financial Services",
+    category: "stock",
+    aliases: ["jpmorgan", "chase bank", "big bank", "büyük banka"],
     marketCap: 668_000_000_000,
     peRatio: 13.1,
     divYield: 2.1,
@@ -246,6 +291,8 @@ export const STOCKS: Stock[] = [
     prevClose: 14.85,
     color: "#00a9e0",
     sector: "Financial Services",
+    category: "stock",
+    aliases: ["online bank", "student loans", "digital bank", "dijital banka"],
     marketCap: 16_800_000_000,
     peRatio: 41.2,
     divYield: null,
@@ -263,6 +310,8 @@ export const STOCKS: Stock[] = [
     prevClose: 13.9,
     color: "#0a4e46",
     sector: "Automotive",
+    category: "stock",
+    aliases: ["electric trucks", "rivian", "ev startup", "elektrikli kamyon"],
     marketCap: 12_500_000_000,
     peRatio: null,
     divYield: null,
@@ -280,6 +329,8 @@ export const STOCKS: Stock[] = [
     prevClose: 181.4,
     color: "#0033a0",
     sector: "Industrials",
+    category: "stock",
+    aliases: ["boeing", "airplane maker", "jets", "uçak üreticisi"],
     marketCap: 134_000_000_000,
     peRatio: null,
     divYield: null,
@@ -297,6 +348,8 @@ export const STOCKS: Stock[] = [
     prevClose: 585.2,
     color: "#6b7280",
     sector: "ETF",
+    category: "fund",
+    aliases: ["s&p 500", "sp500", "whole market fund", "index fund", "endeks fonu", "tüm piyasa fonu"],
     marketCap: 590_000_000_000,
     peRatio: 25.8,
     divYield: 1.24,
@@ -314,6 +367,8 @@ export const STOCKS: Stock[] = [
     prevClose: 508.1,
     color: "#6b7280",
     sector: "ETF",
+    category: "fund",
+    aliases: ["nasdaq 100", "tech fund", "tech index", "teknoloji fonu"],
     marketCap: 320_000_000_000,
     peRatio: 32.1,
     divYield: 0.58,
@@ -331,6 +386,8 @@ export const STOCKS: Stock[] = [
     prevClose: 94_180.2,
     color: "#f7931a",
     sector: "Crypto",
+    category: "crypto",
+    aliases: ["bitcoin", "crypto", "cryptocurrency", "kripto para"],
     marketCap: 1_900_000_000_000,
     peRatio: null,
     divYield: null,
@@ -350,8 +407,43 @@ export function getStock(symbol: string): Stock | undefined {
 export function searchStocks(query: string): Stock[] {
   const q = query.trim().toLowerCase();
   if (!q) return [];
-  return STOCKS.filter(
-    (s) =>
-      s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q),
-  );
+  const starts: Stock[] = [];
+  const rest: Stock[] = [];
+  for (const s of STOCKS) {
+    const matches =
+      s.symbol.toLowerCase().includes(q) ||
+      s.name.toLowerCase().includes(q) ||
+      s.aliases.some((a) => a.toLowerCase().includes(q));
+    if (!matches) continue;
+    if (s.symbol.toLowerCase().startsWith(q) || s.name.toLowerCase().startsWith(q)) {
+      starts.push(s);
+    } else {
+      rest.push(s);
+    }
+  }
+  return [...starts, ...rest];
+}
+
+const POPULAR_SYMBOLS = ["AAPL", "TSLA", "NVDA", "SPY"];
+
+/** Loose suggestions for a query that returned no exact matches. */
+export function suggestStocks(query: string, limit = 4): Stock[] {
+  const words = query.toLowerCase().split(/\s+/).filter((w) => w.length >= 3);
+  if (words.length > 0) {
+    const scored = STOCKS.map((s) => {
+      const haystack = [s.symbol, s.name, ...s.aliases].join(" ").toLowerCase();
+      const score = words.reduce((acc, w) => acc + (haystack.includes(w) ? 1 : 0), 0);
+      return { s, score };
+    })
+      .filter((x) => x.score > 0)
+      .sort((a, b) => b.score - a.score);
+    if (scored.length > 0) return scored.slice(0, limit).map((x) => x.s);
+  }
+  return POPULAR_SYMBOLS.map((sym) => getStock(sym))
+    .filter((s): s is Stock => !!s)
+    .slice(0, limit);
+}
+
+export function stocksByCategory(category: Stock["category"]): Stock[] {
+  return STOCKS.filter((s) => s.category === category);
 }

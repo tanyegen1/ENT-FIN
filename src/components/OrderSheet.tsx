@@ -6,6 +6,8 @@ import type { Stock } from "../types";
 import { Keypad } from "./Keypad";
 import { SuccessBurst } from "./SuccessBurst";
 import { usePortfolio } from "../context/PortfolioContext";
+import { useCurrency } from "../context/CurrencyContext";
+import { useLocale } from "../context/LocaleContext";
 import { useCountUp } from "../hooks/useCountUp";
 import { formatCurrency, formatCurrencyPrecise, formatShares } from "../lib/format";
 
@@ -29,6 +31,8 @@ interface OrderSheetProps {
 
 export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
   const { cash, getHolding, buy, sell } = usePortfolio();
+  const { displayCurrency } = useCurrency();
+  const { t } = useLocale();
   const [side, setSide] = useState<Side>(initialSide);
   const [mode, setMode] = useState<Mode>("dollars");
   const [raw, setRaw] = useState("0");
@@ -53,9 +57,9 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
   const canReview = amount > 0 && !overBuy && !overSell;
 
   const errorMessage = overBuy
-    ? "Not enough buying power"
+    ? t("orderSheet.notEnoughBuyingPower")
     : overSell
-      ? "Not enough shares"
+      ? t("orderSheet.notEnoughShares")
       : null;
 
   const handleDigit = (d: string) => {
@@ -105,12 +109,12 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
       >
         <div className="flex items-center justify-between border-b border-border-soft px-4 py-3">
           <span className="text-[15px] font-semibold text-ink">
-            {step === "success" ? "Order submitted" : `${stock.symbol} · ${stock.name}`}
+            {step === "success" ? t("orderSheet.orderSubmitted") : `${stock.symbol} · ${stock.name}`}
           </span>
           <button
             onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
-            aria-label="Close"
+            aria-label={t("common.close")}
           >
             <X size={20} />
           </button>
@@ -131,7 +135,7 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
                     side === s ? "text-ink" : "text-ink-faint",
                   )}
                 >
-                  {s}
+                  {s === "buy" ? t("stockDetail.buy") : t("stockDetail.sell")}
                   {side === s && (
                     <motion.div
                       layoutId="order-side-underline"
@@ -155,23 +159,26 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
                 className="text-sm font-medium text-ink-faint underline decoration-dotted underline-offset-4 cursor-pointer"
               >
                 {mode === "dollars"
-                  ? `${formatShares(shares)} shares`
+                  ? `${formatShares(shares)} ${t("orderSheet.shares")}`
                   : `≈ ${formatCurrency(cost)}`}
-                &nbsp;· switch to {mode === "dollars" ? "shares" : "dollars"}
+                &nbsp;· {mode === "dollars" ? t("orderSheet.switchToShares") : t("orderSheet.switchToDollars")}
               </button>
               {errorMessage && (
                 <span className="text-sm font-medium text-down">{errorMessage}</span>
               )}
+              {displayCurrency === "TRY" && (
+                <span className="text-center text-[12px] text-ink-faint">{t("orderSheet.usdNote")}</span>
+              )}
             </div>
 
             <div className="flex items-center justify-between px-4 pb-2 text-[13px] text-ink-faint">
-              <span>Market price</span>
+              <span>{t("orderSheet.marketPrice")}</span>
               <span className="tabular-nums text-ink-dim">
                 {formatCurrencyPrecise(stock.price)}
               </span>
             </div>
             <div className="flex items-center justify-between px-4 pb-4 text-[13px] text-ink-faint">
-              <span>{side === "buy" ? "Buying power" : "Shares owned"}</span>
+              <span>{side === "buy" ? t("orderSheet.buyingPower") : t("orderSheet.sharesOwned")}</span>
               <span className="tabular-nums text-ink-dim">
                 {side === "buy"
                   ? formatCurrency(cash)
@@ -198,7 +205,7 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
                     : "bg-surface-3 text-ink-faint cursor-not-allowed",
                 )}
               >
-                Review order
+                {t("orderSheet.reviewOrder")}
               </button>
             </div>
           </div>
@@ -207,8 +214,13 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
         {step === "review" && (
           <div className="flex flex-col overflow-y-auto px-4 pb-6 pt-4">
             <div className="mb-4 flex items-baseline justify-between">
-              <span className="text-sm text-ink-faint capitalize">{side} · Market order</span>
+              <span className="text-sm text-ink-faint">
+                {side === "buy" ? t("orderSheet.buy") : t("orderSheet.sell")} · {t("orderSheet.marketOrder")}
+              </span>
             </div>
+            {displayCurrency === "TRY" && (
+              <p className="mb-4 text-[12px] text-ink-faint">{t("orderSheet.usdNote")}</p>
+            )}
             <div className="mb-6 flex items-center justify-between">
               <span className="text-3xl font-semibold text-ink">{stock.symbol}</span>
               <span className="text-3xl font-semibold tabular-nums text-ink">
@@ -217,20 +229,22 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
             </div>
             <dl className="flex flex-col gap-3 border-t border-border-soft pt-4 text-[14px]">
               <div className="flex justify-between">
-                <dt className="text-ink-faint">Estimated shares</dt>
+                <dt className="text-ink-faint">{t("orderSheet.estimatedShares")}</dt>
                 <dd className="tabular-nums text-ink">{formatShares(shares)}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-ink-faint">Market price</dt>
+                <dt className="text-ink-faint">{t("orderSheet.marketPrice")}</dt>
                 <dd className="tabular-nums text-ink">{formatCurrencyPrecise(stock.price)}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-ink-faint">Estimated {side === "buy" ? "cost" : "proceeds"}</dt>
+                <dt className="text-ink-faint">
+                  {side === "buy" ? t("orderSheet.estimatedCost") : t("orderSheet.estimatedProceeds")}
+                </dt>
                 <dd className="tabular-nums text-ink">{formatCurrency(cost)}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-ink-faint">
-                  {side === "buy" ? "Buying power after" : "Cash after"}
+                  {side === "buy" ? t("orderSheet.buyingPowerAfter") : t("orderSheet.cashAfter")}
                 </dt>
                 <dd className="tabular-nums text-ink">
                   {formatCurrency(side === "buy" ? cash - cost : cash + cost)}
@@ -242,13 +256,13 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
                 onClick={handleSubmit}
                 className="w-full rounded-full bg-up py-3.5 text-[15px] font-semibold text-black transition-colors hover:brightness-110 cursor-pointer"
               >
-                Submit {side === "buy" ? "buy" : "sell"} order
+                {side === "buy" ? t("orderSheet.submitBuy") : t("orderSheet.submitSell")}
               </button>
               <button
                 onClick={() => setStep("entry")}
                 className="w-full rounded-full py-3.5 text-[15px] font-semibold text-ink-dim hover:bg-surface-2 cursor-pointer"
               >
-                Back
+                {t("common.back")}
               </button>
             </div>
           </div>
@@ -272,6 +286,7 @@ interface SuccessStepProps {
 }
 
 function SuccessStep({ side, shares, cost, stock, onClose }: SuccessStepProps) {
+  const { t } = useLocale();
   const animatedCost = useCountUp(cost, 650);
 
   return (
@@ -279,8 +294,8 @@ function SuccessStep({ side, shares, cost, stock, onClose }: SuccessStepProps) {
       <SuccessBurst />
 
       <div>
-        <div className="text-sm font-medium text-ink-faint capitalize">
-          {side === "buy" ? "Bought" : "Sold"} · {stock.symbol}
+        <div className="text-sm font-medium text-ink-faint">
+          {side === "buy" ? t("orderSheet.bought") : t("orderSheet.sold")} · {stock.symbol}
         </div>
         <div className="mt-1 text-4xl font-semibold tabular-nums text-ink">
           {formatCurrency(animatedCost)}
@@ -288,7 +303,7 @@ function SuccessStep({ side, shares, cost, stock, onClose }: SuccessStepProps) {
       </div>
 
       <div className="text-ink-faint">
-        {formatShares(shares)} shares at {formatCurrencyPrecise(stock.price)}
+        {formatShares(shares)} {t("orderSheet.sharesAt")} {formatCurrencyPrecise(stock.price)}
       </div>
 
       <motion.button
@@ -297,7 +312,7 @@ function SuccessStep({ side, shares, cost, stock, onClose }: SuccessStepProps) {
         whileTap={{ scale: 0.97 }}
         transition={{ duration: 0.12 }}
       >
-        Done
+        {t("common.done")}
       </motion.button>
     </div>
   );

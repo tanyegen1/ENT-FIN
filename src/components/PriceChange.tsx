@@ -8,6 +8,8 @@ interface PriceChangeProps {
   size?: "sm" | "md" | "lg";
   showIcon?: boolean;
   className?: string;
+  /** Override for the signed amount text — defaults to USD. Pass a currency-aware formatter for browsing figures. */
+  formatAmount?: (amount: number) => string;
 }
 
 export function PriceChange({
@@ -16,10 +18,14 @@ export function PriceChange({
   size = "md",
   showIcon = true,
   className,
+  formatAmount,
 }: PriceChangeProps) {
   const isUp = amount >= 0;
   const sizeClass =
     size === "lg" ? "text-lg" : size === "sm" ? "text-xs" : "text-sm";
+  const signedText = formatAmount
+    ? `${amount >= 0 ? "+" : "-"}${formatAmount(Math.abs(amount))}`
+    : formatSigned(amount);
   return (
     <span
       className={clsx(
@@ -36,7 +42,7 @@ export function PriceChange({
           <ArrowDown size={size === "lg" ? 16 : 13} strokeWidth={2.75} />
         ))}
       <span>
-        {formatSigned(amount)} ({formatPercent(percent)})
+        {signedText} ({formatPercent(percent)})
       </span>
     </span>
   );

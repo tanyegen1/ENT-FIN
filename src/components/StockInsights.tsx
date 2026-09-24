@@ -6,7 +6,8 @@ import { STOCKS, getStock } from "../data/stocks";
 import { getPriceHistory } from "../data/priceHistory";
 import { getLiveQuote, isLiveSymbol } from "../data/liveQuotes";
 import { buildInsights } from "../lib/insights";
-import { formatCompactNumber } from "../lib/format";
+import { useLocale } from "../context/LocaleContext";
+import { useCurrency } from "../context/CurrencyContext";
 import { ComparisonChart, type ComparisonSeries } from "./ComparisonChart";
 
 const FRIENDLY_NAMES: Record<string, string> = {
@@ -40,6 +41,8 @@ interface StockInsightsProps {
 }
 
 export function StockInsights({ stock, range }: StockInsightsProps) {
+  const { t } = useLocale();
+  const { formatDisplay } = useCurrency();
   const benchmarkSymbol = stock.symbol === "SPY" ? "QQQ" : "SPY";
   const benchmarkStock = getStock(benchmarkSymbol);
 
@@ -62,7 +65,7 @@ export function StockInsights({ stock, range }: StockInsightsProps) {
   const [peerSymbol, setPeerSymbol] = useState(peerCandidates[0]?.symbol ?? benchmarkSymbol);
   const peerStock = getStock(peerSymbol) ?? peerCandidates[0];
 
-  const insights = useMemo(() => buildInsights(stock), [stock]);
+  const insights = useMemo(() => buildInsights(stock, t, formatDisplay), [stock, t, formatDisplay]);
 
   const series: ComparisonSeries[] = useMemo(() => {
     const result: ComparisonSeries[] = [
@@ -113,7 +116,7 @@ export function StockInsights({ stock, range }: StockInsightsProps) {
     peer: string;
   }[] = [
     {
-      label: `Return (${range})`,
+      label: t("insights.metricReturn", { range }),
       stock: `${returnFor(stock.symbol) >= 0 ? "+" : ""}${returnFor(stock.symbol).toFixed(2)}%`,
       benchmark: benchmarkStock
         ? `${returnFor(benchmarkStock.symbol) >= 0 ? "+" : ""}${returnFor(benchmarkStock.symbol).toFixed(2)}%`
@@ -121,25 +124,25 @@ export function StockInsights({ stock, range }: StockInsightsProps) {
       peer: peerStock ? `${returnFor(peerStock.symbol) >= 0 ? "+" : ""}${returnFor(peerStock.symbol).toFixed(2)}%` : "—",
     },
     {
-      label: "P/E ratio",
+      label: t("insights.metricPe"),
       stock: stock.peRatio ? stock.peRatio.toFixed(1) : "—",
       benchmark: benchmarkStock?.peRatio ? benchmarkStock.peRatio.toFixed(1) : "—",
       peer: peerStock?.peRatio ? peerStock.peRatio.toFixed(1) : "—",
     },
     {
-      label: "Dividend yield",
+      label: t("insights.metricDividend"),
       stock: stock.divYield ? `${stock.divYield.toFixed(2)}%` : "—",
       benchmark: benchmarkStock?.divYield ? `${benchmarkStock.divYield.toFixed(2)}%` : "—",
       peer: peerStock?.divYield ? `${peerStock.divYield.toFixed(2)}%` : "—",
     },
     {
-      label: "Market cap",
-      stock: `$${formatCompactNumber(stock.marketCap)}`,
-      benchmark: benchmarkStock ? `$${formatCompactNumber(benchmarkStock.marketCap)}` : "—",
-      peer: peerStock ? `$${formatCompactNumber(peerStock.marketCap)}` : "—",
+      label: t("insights.metricMarketCap"),
+      stock: formatDisplay(stock.marketCap, { compact: true }),
+      benchmark: benchmarkStock ? formatDisplay(benchmarkStock.marketCap, { compact: true }) : "—",
+      peer: peerStock ? formatDisplay(peerStock.marketCap, { compact: true }) : "—",
     },
     {
-      label: "52-wk position",
+      label: t("insights.metricRange"),
       stock: `${rangePosition(stock).toFixed(0)}%`,
       benchmark: benchmarkStock ? `${rangePosition(benchmarkStock).toFixed(0)}%` : "—",
       peer: peerStock ? `${rangePosition(peerStock).toFixed(0)}%` : "—",
@@ -148,9 +151,9 @@ export function StockInsights({ stock, range }: StockInsightsProps) {
 
   return (
     <section className="mt-8 px-4 lg:px-6">
-      <h2 className="text-lg font-semibold text-ink">Insights</h2>
+      <h2 className="text-lg font-semibold text-ink">{t("insights.heading")}</h2>
       <p className="mt-1 text-[13px] text-ink-faint">
-        Plain-English context on {stock.symbol}'s numbers — for understanding, not investment advice.
+        {t("insights.subtitle", { symbol: stock.symbol })}
       </p>
 
       {/* Glossary cards */}
@@ -172,10 +175,10 @@ export function StockInsights({ stock, range }: StockInsightsProps) {
       {/* Comparison */}
       <div className="mt-8">
         <h3 className="text-[15px] font-semibold text-ink">
-          How {stock.symbol} compares
+          {t("insights.comparisonHeading", { symbol: stock.symbol })}
         </h3>
         <p className="mt-1 text-[13px] text-ink-faint">
-          Normalized % change over {range}, so you can compare shape and magnitude regardless of price.
+          {t("insights.comparisonSubtitle", { range })}
         </p>
 
         {peerCandidates.length > 0 && (
@@ -191,7 +194,7 @@ export function StockInsights({ stock, range }: StockInsightsProps) {
                     : "bg-surface-2 text-ink-faint hover:text-ink-dim",
                 )}
               >
-                vs {p.symbol}
+                {t("insights.vsSymbol", { symbol: p.symbol })}
               </button>
             ))}
           </div>
@@ -205,7 +208,7 @@ export function StockInsights({ stock, range }: StockInsightsProps) {
           <table className="w-full text-left text-[13px]">
             <thead>
               <tr className="border-b border-border-soft bg-surface-2 text-ink-faint">
-                <th className="px-3 py-2 font-medium">Metric</th>
+                <th className="px-3 py-2 font-medium">{t("insights.metricHeader")}</th>
                 <th className="px-3 py-2 text-right font-medium text-ink">{stock.symbol}</th>
                 <th className="px-3 py-2 text-right font-medium" style={{ color: BENCHMARK_COLOR }}>
                   {benchmarkStock ? friendlyName(benchmarkStock.symbol) : "—"}
@@ -231,12 +234,12 @@ export function StockInsights({ stock, range }: StockInsightsProps) {
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-ink-faint">
           {benchmarkStock && (
             <Link to={`/stock/${benchmarkStock.symbol}`} className="hover:text-ink-dim underline decoration-dotted underline-offset-4">
-              Open {friendlyName(benchmarkStock.symbol)}
+              {t("insights.openStock", { symbol: friendlyName(benchmarkStock.symbol) })}
             </Link>
           )}
           {peerStock && (
             <Link to={`/stock/${peerStock.symbol}`} className="hover:text-ink-dim underline decoration-dotted underline-offset-4">
-              Open {peerStock.symbol}
+              {t("insights.openStock", { symbol: peerStock.symbol })}
             </Link>
           )}
         </div>

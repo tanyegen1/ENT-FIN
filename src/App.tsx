@@ -1,5 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { LocaleProvider } from "./context/LocaleContext";
+import { CurrencyProvider } from "./context/CurrencyContext";
 import { OnboardingProvider, useOnboarding } from "./context/OnboardingContext";
 import { PortfolioProvider } from "./context/PortfolioContext";
 import { NavShell } from "./components/NavShell";
@@ -49,11 +51,15 @@ function AppRoutes() {
 
 function App() {
   return (
-    <AuthProvider>
-      <OnboardingProvider>
-        <AppRoutes />
-      </OnboardingProvider>
-    </AuthProvider>
+    <LocaleProvider>
+      <CurrencyProvider>
+        <AuthProvider>
+          <OnboardingProvider>
+            <AppRoutes />
+          </OnboardingProvider>
+        </AuthProvider>
+      </CurrencyProvider>
+    </LocaleProvider>
   );
 }
 

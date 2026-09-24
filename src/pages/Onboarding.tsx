@@ -3,44 +3,10 @@ import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, Briefcase, Compass, LineChart, Repeat, Wallet, type LucideIcon } from "lucide-react";
 import { Logo } from "../components/Logo";
 import { useOnboarding, type Experience, type Goal } from "../context/OnboardingContext";
+import { useLocale } from "../context/LocaleContext";
 import type { AccountMode } from "../types";
 
 type Step = 0 | 1 | 2;
-
-const EXPERIENCE_OPTIONS: { value: Experience; label: string; subtitle: string }[] = [
-  { value: "experienced", label: "Yes, I've invested before", subtitle: "I know my way around buying and selling." },
-  { value: "new", label: "No, I'm new to investing", subtitle: "Show me the basics as I go." },
-];
-
-const GOAL_OPTIONS: { value: Goal; label: string; subtitle: string; icon: LucideIcon }[] = [
-  { value: "explore", label: "Explore investing", subtitle: "Browse stocks and see how markets move.", icon: Compass },
-  { value: "regular", label: "Invest regularly", subtitle: "Build a habit of adding cash and buying over time.", icon: Repeat },
-  {
-    value: "manage",
-    label: "Manage an existing portfolio",
-    subtitle: "Track and adjust positions you already understand.",
-    icon: Briefcase,
-  },
-];
-
-function modeCopy(mode: AccountMode, experience: Experience | null): { title: string; subtitle: string } {
-  if (mode === "empty") {
-    return {
-      title: "Start an empty practice account",
-      subtitle:
-        experience === "new"
-          ? "Add practice cash and place your first trade when you're ready — a clean slate to learn on."
-          : "Add practice cash and build your own positions from scratch.",
-    };
-  }
-  return {
-    title: "Explore a sample portfolio",
-    subtitle:
-      experience === "new"
-        ? "Start with a realistic mix of stocks already in place, so you can see how a portfolio works."
-        : "Start with a realistic mix of holdings you can trade, tweak, or clear out any time.",
-  };
-}
 
 const STEP_TRANSITION = {
   initial: { opacity: 0, x: 24 },
@@ -51,9 +17,39 @@ const STEP_TRANSITION = {
 
 export function Onboarding() {
   const { complete } = useOnboarding();
+  const { t } = useLocale();
   const [step, setStep] = useState<Step>(0);
   const [experience, setExperience] = useState<Experience | null>(null);
   const [goal, setGoal] = useState<Goal | null>(null);
+
+  const experienceOptions: { value: Experience; label: string; subtitle: string }[] = [
+    { value: "experienced", label: t("onboarding.q1ExperiencedLabel"), subtitle: t("onboarding.q1ExperiencedSub") },
+    { value: "new", label: t("onboarding.q1NewLabel"), subtitle: t("onboarding.q1NewSub") },
+  ];
+
+  const goalOptions: { value: Goal; label: string; subtitle: string; icon: LucideIcon }[] = [
+    { value: "explore", label: t("onboarding.q2ExploreLabel"), subtitle: t("onboarding.q2ExploreSub"), icon: Compass },
+    { value: "regular", label: t("onboarding.q2RegularLabel"), subtitle: t("onboarding.q2RegularSub"), icon: Repeat },
+    {
+      value: "manage",
+      label: t("onboarding.q2ManageLabel"),
+      subtitle: t("onboarding.q2ManageSub"),
+      icon: Briefcase,
+    },
+  ];
+
+  function modeCopy(mode: AccountMode): { title: string; subtitle: string } {
+    if (mode === "empty") {
+      return {
+        title: t("onboarding.emptyTitle"),
+        subtitle: t(experience === "new" ? "onboarding.emptySubNew" : "onboarding.emptySubDefault"),
+      };
+    }
+    return {
+      title: t("onboarding.sampleTitle"),
+      subtitle: t(experience === "new" ? "onboarding.sampleSubNew" : "onboarding.sampleSubDefault"),
+    };
+  }
 
   const selectExperience = (value: Experience) => {
     setExperience(value);
@@ -80,7 +76,7 @@ export function Onboarding() {
             />
             <Logo size={32} />
           </div>
-          <h1 className="text-xl font-semibold text-ink">Welcome to Arvo</h1>
+          <h1 className="text-xl font-semibold text-ink">{t("onboarding.welcome")}</h1>
         </div>
 
         <div className="mb-6 flex items-center justify-between">
@@ -99,7 +95,7 @@ export function Onboarding() {
               onClick={() => setStep(2)}
               className="text-[13px] font-medium text-ink-faint underline decoration-dotted underline-offset-4 hover:text-ink-dim cursor-pointer"
             >
-              Skip
+              {t("onboarding.skip")}
             </button>
           )}
         </div>
@@ -107,10 +103,10 @@ export function Onboarding() {
         <AnimatePresence mode="wait">
           {step === 0 && (
             <motion.div key="step-0" {...STEP_TRANSITION}>
-              <h2 className="text-lg font-semibold text-ink">Have you invested before?</h2>
-              <p className="mt-1 text-[13px] text-ink-faint">We'll tailor tips and shortcuts to fit.</p>
+              <h2 className="text-lg font-semibold text-ink">{t("onboarding.q1Title")}</h2>
+              <p className="mt-1 text-[13px] text-ink-faint">{t("onboarding.q1Subtitle")}</p>
               <div className="mt-5 flex flex-col gap-3">
-                {EXPERIENCE_OPTIONS.map((opt) => (
+                {experienceOptions.map((opt) => (
                   <motion.button
                     key={opt.value}
                     onClick={() => selectExperience(opt.value)}
@@ -132,12 +128,12 @@ export function Onboarding() {
                 onClick={() => setStep(0)}
                 className="mb-3 flex items-center gap-1 text-[13px] font-medium text-ink-faint hover:text-ink-dim cursor-pointer"
               >
-                <ArrowLeft size={14} /> Back
+                <ArrowLeft size={14} /> {t("common.back")}
               </button>
-              <h2 className="text-lg font-semibold text-ink">What would you like to do?</h2>
-              <p className="mt-1 text-[13px] text-ink-faint">Pick what fits best — you can always change course.</p>
+              <h2 className="text-lg font-semibold text-ink">{t("onboarding.q2Title")}</h2>
+              <p className="mt-1 text-[13px] text-ink-faint">{t("onboarding.q2Subtitle")}</p>
               <div className="mt-5 flex flex-col gap-3">
-                {GOAL_OPTIONS.map((opt) => (
+                {goalOptions.map((opt) => (
                   <motion.button
                     key={opt.value}
                     onClick={() => selectGoal(opt.value)}
@@ -164,15 +160,13 @@ export function Onboarding() {
                 onClick={() => setStep(1)}
                 className="mb-3 flex items-center gap-1 text-[13px] font-medium text-ink-faint hover:text-ink-dim cursor-pointer"
               >
-                <ArrowLeft size={14} /> Back
+                <ArrowLeft size={14} /> {t("common.back")}
               </button>
-              <h2 className="text-lg font-semibold text-ink">How do you want to start?</h2>
-              <p className="mt-1 text-[13px] text-ink-faint">
-                Both are free practice accounts — you can reset yours anytime from Account.
-              </p>
+              <h2 className="text-lg font-semibold text-ink">{t("onboarding.q3Title")}</h2>
+              <p className="mt-1 text-[13px] text-ink-faint">{t("onboarding.q3Subtitle")}</p>
               <div className="mt-5 flex flex-col gap-3">
                 {(["empty", "sample"] as AccountMode[]).map((mode) => {
-                  const copy = modeCopy(mode, experience);
+                  const copy = modeCopy(mode);
                   const Icon = mode === "empty" ? Wallet : LineChart;
                   return (
                     <motion.button

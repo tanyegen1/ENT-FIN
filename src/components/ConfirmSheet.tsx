@@ -1,5 +1,6 @@
 import { motion } from "motion/react";
 import { TriangleAlert } from "lucide-react";
+import { useLocale } from "../context/LocaleContext";
 
 interface ConfirmSheetProps {
   title: string;
@@ -20,6 +21,7 @@ export function ConfirmSheet({
   onConfirm,
   onClose,
 }: ConfirmSheetProps) {
+  const { t } = useLocale();
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center lg:items-center">
       <motion.div
@@ -69,7 +71,7 @@ export function ConfirmSheet({
             transition={{ duration: 0.12 }}
             className="w-full rounded-full py-3.5 text-[15px] font-semibold text-ink-dim hover:bg-surface-2 cursor-pointer"
           >
-            Cancel
+            {t("common.cancel")}
           </motion.button>
         </div>
       </motion.div>

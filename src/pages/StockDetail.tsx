@@ -5,6 +5,8 @@ import { Star } from "lucide-react";
 import { getPriceHistory } from "../data/priceHistory";
 import { isLiveSymbol, useStock } from "../data/liveQuotes";
 import { usePortfolio } from "../context/PortfolioContext";
+import { useLocale } from "../context/LocaleContext";
+import { useCurrency } from "../context/CurrencyContext";
 import { InteractiveChart } from "../components/InteractiveChart";
 import { RangeTabs } from "../components/RangeTabs";
 import { PriceChange } from "../components/PriceChange";
@@ -13,18 +15,15 @@ import { OrderSheet } from "../components/OrderSheet";
 import { LiveDot } from "../components/LiveDot";
 import { StockLogo } from "../components/StockLogo";
 import { StockInsights } from "../components/StockInsights";
-import {
-  formatCompactNumber,
-  formatCurrency,
-  formatCurrencyPrecise,
-  formatShares,
-} from "../lib/format";
+import { formatCompactNumber, formatShares } from "../lib/format";
 import type { PricePoint, Range } from "../types";
 
 export function StockDetail() {
   const { symbol = "" } = useParams();
   const stock = useStock(symbol.toUpperCase());
   const { getHolding, isWatched, toggleWatchlist } = usePortfolio();
+  const { t } = useLocale();
+  const { formatDisplay } = useCurrency();
   const [range, setRange] = useState<Range>("1D");
   const [scrub, setScrub] = useState<PricePoint | null>(null);
   const [order, setOrder] = useState<"buy" | "sell" | null>(null);
@@ -49,14 +48,14 @@ export function StockDetail() {
   const positive = diff >= 0;
 
   const stats: [string, string][] = [
-    ["Market cap", `$${formatCompactNumber(stock.marketCap)}`],
-    ["P/E ratio", stock.peRatio ? stock.peRatio.toFixed(1) : "—"],
-    ["Dividend yield", stock.divYield ? `${stock.divYield.toFixed(2)}%` : "—"],
-    ["52-wk high", formatCurrencyPrecise(stock.weekHigh52)],
-    ["52-wk low", formatCurrencyPrecise(stock.weekLow52)],
-    ["Volume", stock.volume ? formatCompactNumber(stock.volume) : "—"],
-    ["Avg volume", stock.avgVolume ? formatCompactNumber(stock.avgVolume) : "—"],
-    ["Sector", stock.sector],
+    [t("stockDetail.marketCap"), formatDisplay(stock.marketCap, { compact: true })],
+    [t("stockDetail.peRatio"), stock.peRatio ? stock.peRatio.toFixed(1) : "—"],
+    [t("stockDetail.dividendYield"), stock.divYield ? `${stock.divYield.toFixed(2)}%` : "—"],
+    [t("stockDetail.weekHigh"), formatDisplay(stock.weekHigh52, { precise: true })],
+    [t("stockDetail.weekLow"), formatDisplay(stock.weekLow52, { precise: true })],
+    [t("stockDetail.volume"), stock.volume ? formatCompactNumber(stock.volume) : "—"],
+    [t("stockDetail.avgVolume"), stock.avgVolume ? formatCompactNumber(stock.avgVolume) : "—"],
+    [t("stockDetail.sector"), t(`sectors.${stock.sector}`)],
   ];
 
   return (
@@ -68,7 +67,7 @@ export function StockDetail() {
           <motion.button
             onClick={() => toggleWatchlist(stock.symbol)}
             className="flex h-8 w-8 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
-            aria-label="Toggle watchlist"
+            aria-label={t("stockDetail.toggleWatchlist")}
             whileTap={{ scale: 0.85 }}
             animate={watched ? { scale: [1, 1.35, 1] } : { scale: 1 }}
             transition={{ duration: 0.32, ease: "easeOut" }}
@@ -106,12 +105,12 @@ export function StockDetail() {
               <LiveDot symbol={stock.symbol} showLabel />
             </div>
             <div className="text-3xl font-semibold tabular-nums text-ink">
-              {formatCurrencyPrecise(displayPrice)}
+              {formatDisplay(displayPrice, { precise: true })}
             </div>
           </motion.div>
         </div>
         <div className="mt-1.5">
-          <PriceChange amount={diff} percent={diffPercent} size="md" />
+          <PriceChange amount={diff} percent={diffPercent} size="md" formatAmount={formatDisplay} />
         </div>
       </div>
 
@@ -130,33 +129,34 @@ export function StockDetail() {
 
       {holding && (
         <div className="mx-4 mt-6 rounded-2xl bg-surface-2 px-4 py-3.5 lg:mx-6">
-          <div className="text-[13px] text-ink-faint">Your position</div>
+          <div className="text-[13px] text-ink-faint">{t("stockDetail.yourPosition")}</div>
           <div className="mt-2 grid grid-cols-2 gap-y-2 text-[14px]">
-            <span className="text-ink-faint">Shares owned</span>
+            <span className="text-ink-faint">{t("stockDetail.sharesOwned")}</span>
             <span className="text-right tabular-nums text-ink">
               {formatShares(holding.shares)}
             </span>
-            <span className="text-ink-faint">Average cost</span>
+            <span className="text-ink-faint">{t("stockDetail.avgCost")}</span>
             <span className="text-right tabular-nums text-ink">
-              {formatCurrencyPrecise(holding.avgCost)}
+              {formatDisplay(holding.avgCost, { precise: true })}
             </span>
-            <span className="text-ink-faint">Market value</span>
+            <span className="text-ink-faint">{t("stockDetail.marketValue")}</span>
             <span className="text-right tabular-nums text-ink">
-              {formatCurrency(holding.shares * stock.price)}
+              {formatDisplay(holding.shares * stock.price)}
             </span>
-            <span className="text-ink-faint">Total return</span>
+            <span className="text-ink-faint">{t("stockDetail.totalReturn")}</span>
             <PriceChange
               amount={(stock.price - holding.avgCost) * holding.shares}
               percent={((stock.price - holding.avgCost) / holding.avgCost) * 100}
               size="sm"
               className="justify-end"
+              formatAmount={formatDisplay}
             />
           </div>
         </div>
       )}
 
       <section className="mt-8 px-4 lg:px-6">
-        <h2 className="text-lg font-semibold text-ink">Stats</h2>
+        <h2 className="text-lg font-semibold text-ink">{t("stockDetail.stats")}</h2>
         <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-4">
           {stats.map(([label, value]) => (
             <div key={label}>
@@ -170,7 +170,7 @@ export function StockDetail() {
       <StockInsights stock={stock} range={range} />
 
       <section className="mt-8 px-4 lg:px-6">
-        <h2 className="text-lg font-semibold text-ink">About</h2>
+        <h2 className="text-lg font-semibold text-ink">{t("stockDetail.about")}</h2>
         <p className="mt-2 text-[14px] leading-relaxed text-ink-dim">{stock.about}</p>
       </section>
 
@@ -181,7 +181,7 @@ export function StockDetail() {
           whileTap={{ scale: 0.96 }}
           transition={{ duration: 0.12 }}
         >
-          Sell
+          {t("stockDetail.sell")}
         </motion.button>
         <motion.button
           onClick={() => setOrder("buy")}
@@ -189,7 +189,7 @@ export function StockDetail() {
           whileTap={{ scale: 0.96 }}
           transition={{ duration: 0.12 }}
         >
-          Buy
+          {t("stockDetail.buy")}
         </motion.button>
       </div>
 

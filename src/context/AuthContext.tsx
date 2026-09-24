@@ -9,6 +9,7 @@ import {
 } from "react";
 import type { User } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
+import { useLocale } from "./LocaleContext";
 
 const GUEST_KEY = "arvo.guestMode";
 
@@ -32,15 +33,16 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function friendlyAuthError(message: string): string {
-  if (/already registered/i.test(message)) return "That email already has an account — try logging in instead.";
-  if (/invalid login credentials/i.test(message)) return "Incorrect email or password.";
-  if (/password.*at least/i.test(message)) return "Password must be at least 6 characters.";
-  if (/email.*invalid/i.test(message)) return "That doesn't look like a valid email address.";
+function friendlyAuthError(message: string, t: (path: string) => string): string {
+  if (/already registered/i.test(message)) return t("login.errorAlreadyRegistered");
+  if (/invalid login credentials/i.test(message)) return t("login.errorInvalidCredentials");
+  if (/password.*at least/i.test(message)) return t("login.errorPasswordTooShort");
+  if (/email.*invalid/i.test(message)) return t("login.errorInvalidEmail");
   return message;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { t } = useLocale();
   const [user, setUser] = useState<User | null>(null);
   const [isGuest, setIsGuest] = useState(() => {
     try {
@@ -103,20 +105,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           : "signed-out";
 
   const signUpWithEmail = useCallback(async (email: string, password: string): Promise<AuthResult> => {
-    if (!supabase) return { error: "Cloud sync isn't configured." };
+    if (!supabase) return { error: t("login.errorCloudUnavailable") };
     const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) return { error: friendlyAuthError(error.message) };
+    if (error) return { error: friendlyAuthError(error.message, t) };
     // If the project has "Confirm email" off, signUp already returns a live
     // session — onAuthStateChange picks it up and signs you in immediately.
     // Otherwise there's no session yet until the confirmation link is clicked.
     return { needsConfirmation: !data.session };
-  }, []);
+  }, [t]);
 
   const signInWithEmail = useCallback(async (email: string, password: string): Promise<AuthResult> => {
-    if (!supabase) return { error: "Cloud sync isn't configured." };
+    if (!supabase) return { error: t("login.errorCloudUnavailable") };
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return error ? { error: friendlyAuthError(error.message) } : {};
-  }, []);
+    return error ? { error: friendlyAuthError(error.message, t) } : {};
+  }, [t]);
 
   const signOut = useCallback(async () => {
     if (supabase) await supabase.auth.signOut();

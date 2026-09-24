@@ -5,6 +5,8 @@ import clsx from "clsx";
 import { Keypad } from "./Keypad";
 import { SuccessBurst } from "./SuccessBurst";
 import { usePortfolio } from "../context/PortfolioContext";
+import { useCurrency } from "../context/CurrencyContext";
+import { useLocale } from "../context/LocaleContext";
 import { useCountUp } from "../hooks/useCountUp";
 import { formatCurrency } from "../lib/format";
 
@@ -21,6 +23,8 @@ interface CashSheetProps {
 
 export function CashSheet({ mode, onClose }: CashSheetProps) {
   const { cash, deposit, withdraw } = usePortfolio();
+  const { displayCurrency } = useCurrency();
+  const { t } = useLocale();
   const [raw, setRaw] = useState("0");
   const [step, setStep] = useState<Step>("entry");
   const [confirmedAmount, setConfirmedAmount] = useState(0);
@@ -88,16 +92,16 @@ export function CashSheet({ mode, onClose }: CashSheetProps) {
           <span className="text-[15px] font-semibold text-ink">
             {step === "success"
               ? mode === "deposit"
-                ? "Funds added"
-                : "Funds withdrawn"
+                ? t("cashSheet.fundsAdded")
+                : t("cashSheet.fundsWithdrawn")
               : mode === "deposit"
-                ? "Add practice cash"
-                : "Withdraw cash"}
+                ? t("cashSheet.addTitle")
+                : t("cashSheet.withdrawTitle")}
           </span>
           <button
             onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
-            aria-label="Close"
+            aria-label={t("common.close")}
           >
             <X size={20} />
           </button>
@@ -113,19 +117,20 @@ export function CashSheet({ mode, onClose }: CashSheetProps) {
           >
             {step === "entry" && (
               <div className="flex flex-col overflow-y-auto">
-                <p className="px-4 pt-3 text-[13px] text-ink-faint">
-                  Simulated cash for practice trading — not real money.
-                </p>
+                <p className="px-4 pt-3 text-[13px] text-ink-faint">{t("cashSheet.simNote")}</p>
+                {displayCurrency === "TRY" && (
+                  <p className="px-4 pt-1 text-[12px] text-ink-faint">{t("cashSheet.usdNote")}</p>
+                )}
 
                 <div className="flex flex-col items-center gap-2 px-4 py-8">
                   <div className="text-5xl font-semibold tabular-nums text-ink">${raw}</div>
                   {overWithdraw && (
-                    <span className="text-sm font-medium text-down">Exceeds available cash</span>
+                    <span className="text-sm font-medium text-down">{t("cashSheet.exceedsCash")}</span>
                   )}
                 </div>
 
                 <div className="flex items-center justify-between px-4 pb-4 text-[13px] text-ink-faint">
-                  <span>Buying power</span>
+                  <span>{t("cashSheet.buyingPower")}</span>
                   <span className="tabular-nums text-ink-dim">{formatCurrency(cash)}</span>
                 </div>
 
@@ -145,7 +150,7 @@ export function CashSheet({ mode, onClose }: CashSheetProps) {
                           onClick={withdrawAll}
                           className="shrink-0 rounded-full bg-brand-soft px-4 py-2 text-[13px] font-semibold text-brand-light hover:brightness-125 cursor-pointer"
                         >
-                          Withdraw all
+                          {t("cashSheet.withdrawAll")}
                         </button>
                       )}
                 </div>
@@ -167,7 +172,7 @@ export function CashSheet({ mode, onClose }: CashSheetProps) {
                         : "bg-surface-3 text-ink-faint cursor-not-allowed",
                     )}
                   >
-                    {mode === "deposit" ? "Add funds" : "Withdraw"}
+                    {mode === "deposit" ? t("cashSheet.addFunds") : t("cashSheet.withdrawBtn")}
                   </motion.button>
                 </div>
               </div>
@@ -184,13 +189,14 @@ export function CashSheet({ mode, onClose }: CashSheetProps) {
 }
 
 function CashSuccess({ mode, amount, onClose }: { mode: Mode; amount: number; onClose: () => void }) {
+  const { t } = useLocale();
   const animated = useCountUp(amount, 650);
   return (
     <div className="flex flex-col items-center gap-4 px-6 py-12 text-center">
       <SuccessBurst />
       <div>
         <div className="text-sm font-medium text-ink-faint">
-          {mode === "deposit" ? "Added to buying power" : "Withdrawn from buying power"}
+          {mode === "deposit" ? t("cashSheet.addedToBuyingPower") : t("cashSheet.withdrawnFromBuyingPower")}
         </div>
         <div className="mt-1 text-4xl font-semibold tabular-nums text-ink">
           {mode === "deposit" ? "+" : "-"}
@@ -203,7 +209,7 @@ function CashSuccess({ mode, amount, onClose }: { mode: Mode; amount: number; on
         whileTap={{ scale: 0.97 }}
         transition={{ duration: 0.12 }}
       >
-        Done
+        {t("common.done")}
       </motion.button>
     </div>
   );

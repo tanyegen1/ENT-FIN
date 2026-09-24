@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import type { PricePoint } from "../types";
+import { useLocale } from "../context/LocaleContext";
 
 interface InteractiveChartProps {
   data: PricePoint[];
@@ -36,6 +37,7 @@ export function InteractiveChart({
   height = 260,
   onScrub,
 }: InteractiveChartProps) {
+  const { t } = useLocale();
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(320);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -161,7 +163,7 @@ export function InteractiveChart({
         </svg>
       )}
       <span className="sr-only">
-        Price range {min.toFixed(2)} to {max.toFixed(2)}
+        {t("common.priceRange", { min: min.toFixed(2), max: max.toFixed(2) })}
       </span>
     </div>
   );

@@ -9,6 +9,7 @@ import {
   CloudOff,
   FileText,
   FlaskConical,
+  Globe,
   HelpCircle,
   LogIn,
   LogOut,
@@ -18,31 +19,12 @@ import {
 } from "lucide-react";
 import { usePortfolio } from "../context/PortfolioContext";
 import { useAuth } from "../context/AuthContext";
+import { useLocale } from "../context/LocaleContext";
+import { useCurrency } from "../context/CurrencyContext";
 import { ConfirmSheet } from "../components/ConfirmSheet";
+import { LocaleCurrencySheet } from "../components/LocaleCurrencySheet";
 import { formatCurrency, formatCurrencyPrecise, formatShares } from "../lib/format";
 import type { OrderRecord, TransferRecord } from "../types";
-
-const SYNC_LABEL: Record<string, string> = {
-  local: "Saved on this device",
-  saving: "Saving…",
-  synced: "Synced to your account",
-  error: "Sync error — will retry",
-};
-
-const SYNC_DOT: Record<string, string> = {
-  local: "bg-ink-faint",
-  saving: "bg-ink-faint animate-pulse",
-  synced: "bg-brand",
-  error: "bg-down",
-};
-
-const SETTINGS_ROWS = [
-  { icon: Banknote, label: "Transfers & banking" },
-  { icon: FileText, label: "Statements & history" },
-  { icon: Bell, label: "Notifications" },
-  { icon: ShieldCheck, label: "Security" },
-  { icon: HelpCircle, label: "Help" },
-];
 
 type ActivityItem =
   | { kind: "order"; timestamp: number; data: OrderRecord }
@@ -51,12 +33,37 @@ type ActivityItem =
 export function Account() {
   const { cash, equityValue, totalValue, orders, transfers, resetPortfolio, syncStatus } = usePortfolio();
   const { status, user, signOut, exitGuestMode } = useAuth();
+  const { t, locale } = useLocale();
+  const { displayCurrency, formatDisplay } = useCurrency();
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showLocaleSheet, setShowLocaleSheet] = useState(false);
+
+  const SYNC_LABEL: Record<string, string> = {
+    local: t("account.syncLocal"),
+    saving: t("account.syncSaving"),
+    synced: t("account.syncSynced"),
+    error: t("account.syncError"),
+  };
+
+  const SYNC_DOT: Record<string, string> = {
+    local: "bg-ink-faint",
+    saving: "bg-ink-faint animate-pulse",
+    synced: "bg-brand",
+    error: "bg-down",
+  };
+
+  const SETTINGS_ROWS = [
+    { icon: Banknote, label: t("account.settingsTransfers") },
+    { icon: FileText, label: t("account.settingsStatements") },
+    { icon: Bell, label: t("account.settingsNotifications") },
+    { icon: ShieldCheck, label: t("account.settingsSecurity") },
+    { icon: HelpCircle, label: t("account.settingsHelp") },
+  ];
 
   const activity: ActivityItem[] = useMemo(() => {
     const items: ActivityItem[] = [
       ...orders.map((o) => ({ kind: "order" as const, timestamp: o.timestamp, data: o })),
-      ...transfers.map((t) => ({ kind: "transfer" as const, timestamp: t.timestamp, data: t })),
+      ...transfers.map((tr) => ({ kind: "transfer" as const, timestamp: tr.timestamp, data: tr })),
     ];
     return items.sort((a, b) => b.timestamp - a.timestamp);
   }, [orders, transfers]);
@@ -65,16 +72,16 @@ export function Account() {
   const avatarUrl = meta.avatar_url ?? meta.picture;
   const displayName =
     status === "signed-in"
-      ? meta.full_name ?? meta.name ?? user?.email?.split("@")[0] ?? "Account"
+      ? meta.full_name ?? meta.name ?? user?.email?.split("@")[0] ?? t("nav.account")
       : status === "guest"
-        ? "Guest"
-        : "Local practice";
+        ? t("account.guest")
+        : t("account.localPractice");
   const displaySubtitle =
     status === "signed-in"
       ? user?.email
       : status === "guest"
-        ? "Practicing locally — no account yet"
-        : "Cloud sync not configured";
+        ? t("account.guestSubtitle")
+        : t("account.cloudUnconfiguredSubtitle");
 
   return (
     <div className="pb-10">
@@ -92,7 +99,7 @@ export function Account() {
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
               <FlaskConical size={11} />
-              Paper trading account
+              {t("account.paperTradingLabel")}
             </span>
             {status === "signed-in" && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-medium text-ink-faint">
@@ -103,7 +110,7 @@ export function Account() {
             {status === "unconfigured" && (
               <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-medium text-ink-faint">
                 <CloudOff size={11} />
-                Local only
+                {t("account.localOnly")}
               </span>
             )}
           </div>
@@ -112,26 +119,39 @@ export function Account() {
 
       <div className="mx-4 mt-6 grid grid-cols-3 divide-x divide-border-soft rounded-2xl bg-surface-2 lg:mx-6">
         <div className="px-3 py-3.5 text-center">
-          <div className="text-[12px] text-ink-faint">Total value</div>
+          <div className="text-[12px] text-ink-faint">{t("account.totalValue")}</div>
           <div className="mt-0.5 text-[14px] font-semibold tabular-nums text-ink">
-            {formatCurrency(totalValue)}
+            {formatDisplay(totalValue)}
           </div>
         </div>
         <div className="px-3 py-3.5 text-center">
-          <div className="text-[12px] text-ink-faint">Equity</div>
+          <div className="text-[12px] text-ink-faint">{t("account.equity")}</div>
           <div className="mt-0.5 text-[14px] font-semibold tabular-nums text-ink">
-            {formatCurrency(equityValue)}
+            {formatDisplay(equityValue)}
           </div>
         </div>
         <div className="px-3 py-3.5 text-center">
-          <div className="text-[12px] text-ink-faint">Cash</div>
+          <div className="text-[12px] text-ink-faint">{t("account.cash")}</div>
           <div className="mt-0.5 text-[14px] font-semibold tabular-nums text-ink">
-            {formatCurrency(cash)}
+            {formatDisplay(cash)}
           </div>
         </div>
       </div>
 
       <div className="mt-6 px-2 lg:px-4">
+        <motion.button
+          onClick={() => setShowLocaleSheet(true)}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-left hover:bg-surface-2 cursor-pointer"
+          whileTap={{ scale: 0.98, backgroundColor: "var(--color-surface-2)" }}
+          transition={{ duration: 0.12 }}
+        >
+          <Globe size={20} className="text-ink-dim" />
+          <span className="flex-1 text-[15px] text-ink">{t("account.settingsLanguageCurrency")}</span>
+          <span className="text-[13px] text-ink-faint">
+            {locale.toUpperCase()} · {displayCurrency === "USD" ? "$" : "₺"}
+          </span>
+          <ChevronRight size={18} className="text-ink-faint" />
+        </motion.button>
         {SETTINGS_ROWS.map((row) => (
           <motion.button
             key={row.label}
@@ -151,7 +171,7 @@ export function Account() {
           transition={{ duration: 0.12 }}
         >
           <RotateCcw size={20} className="text-ink-dim" />
-          <span className="flex-1 text-[15px] text-ink">Reset practice portfolio</span>
+          <span className="flex-1 text-[15px] text-ink">{t("account.resetPortfolio")}</span>
           <ChevronRight size={18} className="text-ink-faint" />
         </motion.button>
         {status === "signed-in" && (
@@ -162,7 +182,7 @@ export function Account() {
             transition={{ duration: 0.12 }}
           >
             <LogOut size={20} className="text-down" />
-            <span className="flex-1 text-[15px] text-down">Sign out</span>
+            <span className="flex-1 text-[15px] text-down">{t("account.signOut")}</span>
           </motion.button>
         )}
         {status === "guest" && (
@@ -173,18 +193,16 @@ export function Account() {
             transition={{ duration: 0.12 }}
           >
             <LogIn size={20} className="text-brand-light" />
-            <span className="flex-1 text-[15px] text-brand-light">Log in or create an account</span>
+            <span className="flex-1 text-[15px] text-brand-light">{t("account.loginOrCreate")}</span>
             <ChevronRight size={18} className="text-ink-faint" />
           </motion.button>
         )}
       </div>
 
       <section className="mt-6 px-4 lg:px-6">
-        <h2 className="text-lg font-semibold text-ink">Activity</h2>
+        <h2 className="text-lg font-semibold text-ink">{t("account.activityHeading")}</h2>
         {activity.length === 0 && (
-          <p className="mt-2 text-sm text-ink-faint">
-            Trades and transfers will show up here.
-          </p>
+          <p className="mt-2 text-sm text-ink-faint">{t("account.noActivity")}</p>
         )}
         <div className="mt-2 flex flex-col divide-y divide-border-soft">
           {activity.map((item) => (
@@ -205,11 +223,11 @@ export function Account() {
               <div className="min-w-0 flex-1">
                 <div className="text-[14px] font-medium text-ink">
                   {item.kind === "transfer" ? (
-                    item.data.type === "deposit" ? "Added cash" : "Withdrew cash"
+                    item.data.type === "deposit" ? t("account.addedCash") : t("account.withdrewCash")
                   ) : (
                     <>
                       <span className={item.data.side === "buy" ? "text-up" : "text-down"}>
-                        {item.data.side === "buy" ? "Bought" : "Sold"}
+                        {item.data.side === "buy" ? t("account.bought") : t("account.sold")}
                       </span>{" "}
                       {item.data.symbol}
                     </>
@@ -218,7 +236,7 @@ export function Account() {
                 <div className="text-[13px] text-ink-faint">
                   {item.kind === "order" &&
                     `${formatShares(item.data.shares)} sh @ ${formatCurrencyPrecise(item.data.price)} · `}
-                  {new Date(item.timestamp).toLocaleDateString(undefined, {
+                  {new Date(item.timestamp).toLocaleDateString(locale === "tr" ? "tr-TR" : undefined, {
                     month: "short",
                     day: "numeric",
                   })}
@@ -236,9 +254,9 @@ export function Account() {
       <AnimatePresence>
         {showResetConfirm && (
           <ConfirmSheet
-            title="Reset practice portfolio?"
-            description="This clears your holdings, cash, watchlist, and activity back to the starting practice balance. This can't be undone."
-            confirmLabel="Reset portfolio"
+            title={t("account.resetConfirmTitle")}
+            description={t("account.resetConfirmDesc")}
+            confirmLabel={t("account.resetConfirmBtn")}
             danger
             onConfirm={() => {
               resetPortfolio();
@@ -247,6 +265,9 @@ export function Account() {
             onClose={() => setShowResetConfirm(false)}
           />
         )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showLocaleSheet && <LocaleCurrencySheet onClose={() => setShowLocaleSheet(false)} />}
       </AnimatePresence>
     </div>
   );

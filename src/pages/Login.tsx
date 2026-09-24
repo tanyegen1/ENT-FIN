@@ -2,12 +2,14 @@ import { useState, type FormEvent } from "react";
 import { motion } from "motion/react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { useLocale } from "../context/LocaleContext";
 import { Logo } from "../components/Logo";
 
 type Mode = "login" | "signup";
 
 export function Login() {
   const { signUpWithEmail, signInWithEmail, continueAsGuest } = useAuth();
+  const { t } = useLocale();
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,7 +32,7 @@ export function Login() {
     if (result.error) {
       setError(result.error);
     } else if (mode === "signup" && result.needsConfirmation) {
-      setInfo("Account created — check your inbox to confirm your email, then log in.");
+      setInfo(t("login.confirmEmailInfo"));
       setMode("login");
     }
     // If signup succeeded with no confirmation needed, onAuthStateChange
@@ -53,8 +55,8 @@ export function Login() {
             />
             <Logo size={36} />
           </div>
-          <h1 className="text-2xl font-semibold text-ink">Arvo</h1>
-          <p className="text-sm text-ink-faint">Practice trading, saved to your account.</p>
+          <h1 className="text-2xl font-semibold text-ink">{t("login.title")}</h1>
+          <p className="text-sm text-ink-faint">{t("login.subtitle")}</p>
         </div>
 
         <div className="relative mb-6 flex rounded-full bg-surface-2 p-1">
@@ -77,7 +79,7 @@ export function Login() {
                 />
               )}
               <span className={`relative z-10 ${mode === m ? "text-brand-light" : "text-ink-faint"}`}>
-                {m === "login" ? "Log in" : "Sign up"}
+                {m === "login" ? t("login.tabLogin") : t("login.tabSignup")}
               </span>
             </button>
           ))}
@@ -86,7 +88,7 @@ export function Login() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div>
             <label htmlFor="email" className="mb-1.5 block text-[13px] font-medium text-ink-faint">
-              Email
+              {t("login.emailLabel")}
             </label>
             <input
               id="email"
@@ -94,14 +96,14 @@ export function Login() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              placeholder={t("login.emailPlaceholder")}
               className="w-full rounded-xl border border-border bg-surface-2 px-3.5 py-3 text-[15px] text-ink placeholder:text-ink-faint focus:border-brand focus:outline-none"
             />
           </div>
 
           <div>
             <label htmlFor="password" className="mb-1.5 block text-[13px] font-medium text-ink-faint">
-              Password
+              {t("login.passwordLabel")}
             </label>
             <div className="relative">
               <input
@@ -110,7 +112,7 @@ export function Login() {
                 autoComplete={mode === "login" ? "current-password" : "new-password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder={t("login.passwordPlaceholder")}
                 className="w-full rounded-xl border border-border bg-surface-2 px-3.5 py-3 pr-11 text-[15px] text-ink placeholder:text-ink-faint focus:border-brand focus:outline-none"
               />
               <button
@@ -123,7 +125,7 @@ export function Login() {
               </button>
             </div>
             {mode === "signup" && (
-              <p className="mt-1.5 text-[12px] text-ink-faint">At least 6 characters.</p>
+              <p className="mt-1.5 text-[12px] text-ink-faint">{t("login.passwordHint")}</p>
             )}
           </div>
 
@@ -154,7 +156,7 @@ export function Login() {
             className={`mt-1 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[15px] font-semibold text-white transition-all disabled:cursor-not-allowed disabled:bg-surface-3 disabled:text-ink-faint disabled:shadow-none ${canSubmit ? "brand-gradient brand-glow hover:brightness-110" : ""}`}
           >
             {loading && <Loader2 size={18} className="animate-spin" />}
-            {mode === "login" ? "Log in" : "Create account"}
+            {mode === "login" ? t("login.submitLogin") : t("login.submitSignup")}
           </motion.button>
         </form>
 
@@ -162,7 +164,7 @@ export function Login() {
           onClick={continueAsGuest}
           className="mt-6 w-full text-center text-[13px] font-medium text-ink-faint underline decoration-dotted underline-offset-4 hover:text-ink-dim cursor-pointer"
         >
-          Continue as guest — practice locally, no account
+          {t("login.guestCta")}
         </button>
       </motion.div>
     </div>
