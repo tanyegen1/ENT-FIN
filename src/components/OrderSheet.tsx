@@ -31,7 +31,7 @@ interface OrderSheetProps {
 
 export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
   const { cash, getHolding, buy, sell } = usePortfolio();
-  const { displayCurrency } = useCurrency();
+  const { displayCurrency, formatDisplay } = useCurrency();
   const { t } = useLocale();
   const [side, setSide] = useState<Side>(initialSide);
   const [mode, setMode] = useState<Mode>("dollars");
@@ -148,6 +148,17 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
             </div>
 
             <div className="flex flex-col items-center gap-2 px-4 py-8">
+              <div className="text-[13px] font-medium text-ink-faint">
+                {t(
+                  side === "buy"
+                    ? mode === "dollars"
+                      ? "orderSheet.promptBuyDollars"
+                      : "orderSheet.promptBuyShares"
+                    : mode === "dollars"
+                      ? "orderSheet.promptSellDollars"
+                      : "orderSheet.promptSellShares",
+                )}
+              </div>
               <div className="text-5xl font-semibold tabular-nums text-ink">
                 {displayValue}
               </div>
@@ -229,23 +240,35 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
             </div>
             <dl className="flex flex-col gap-3 border-t border-border-soft pt-4 text-[14px]">
               <div className="flex justify-between">
-                <dt className="text-ink-faint">{t("orderSheet.estimatedShares")}</dt>
-                <dd className="tabular-nums text-ink">{formatShares(shares)}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-ink-faint">{t("orderSheet.marketPrice")}</dt>
-                <dd className="tabular-nums text-ink">{formatCurrencyPrecise(stock.price)}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-ink-faint">
-                  {side === "buy" ? t("orderSheet.estimatedCost") : t("orderSheet.estimatedProceeds")}
-                </dt>
+                <dt className="text-ink-faint">{t("orderSheet.investmentAmount")}</dt>
                 <dd className="tabular-nums text-ink">{formatCurrency(cost)}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-ink-faint">
-                  {side === "buy" ? t("orderSheet.buyingPowerAfter") : t("orderSheet.cashAfter")}
+                <dt className="text-ink-faint">{t("orderSheet.estimatedQuantity")}</dt>
+                <dd className="tabular-nums text-ink">
+                  {formatShares(shares)} {t("orderSheet.shares")}
+                </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-ink-faint">{t("orderSheet.fees")}</dt>
+                <dd className="tabular-nums text-ink">{formatCurrency(0)}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="shrink-0 text-ink-faint">{t("orderSheet.currencyConversion")}</dt>
+                <dd className="text-right text-ink">
+                  {displayCurrency === "TRY"
+                    ? t("orderSheet.conversionRate", { rate: formatDisplay(1) })
+                    : t("orderSheet.conversionNotApplicable")}
+                </dd>
+              </div>
+              <div className="flex justify-between border-t border-border-soft pt-3">
+                <dt className="font-medium text-ink">
+                  {side === "buy" ? t("orderSheet.totalPayment") : t("orderSheet.totalProceeds")}
                 </dt>
+                <dd className="font-medium tabular-nums text-ink">{formatCurrency(cost)}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-ink-faint">{t("orderSheet.remainingCash")}</dt>
                 <dd className="tabular-nums text-ink">
                   {formatCurrency(side === "buy" ? cash - cost : cash + cost)}
                 </dd>
@@ -262,7 +285,7 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
                 onClick={() => setStep("entry")}
                 className="w-full rounded-full py-3.5 text-[15px] font-semibold text-ink-dim hover:bg-surface-2 cursor-pointer"
               >
-                {t("common.back")}
+                {t("orderSheet.editAmount")}
               </button>
             </div>
           </div>

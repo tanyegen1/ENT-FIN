@@ -5,7 +5,6 @@ import type { Range, Stock } from "../types";
 import { STOCKS, getStock } from "../data/stocks";
 import { getPriceHistory } from "../data/priceHistory";
 import { getLiveQuote, isLiveSymbol } from "../data/liveQuotes";
-import { buildInsights } from "../lib/insights";
 import { useLocale } from "../context/LocaleContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { ComparisonChart, type ComparisonSeries } from "./ComparisonChart";
@@ -35,12 +34,13 @@ function rangePosition(stock: Stock): number {
   return ((stock.price - stock.weekLow52) / span) * 100;
 }
 
-interface StockInsightsProps {
+interface ComparisonSectionProps {
   stock: Stock;
   range: Range;
 }
 
-export function StockInsights({ stock, range }: StockInsightsProps) {
+/** The "compare" half of Insights — how this stock stacks up vs. a benchmark and a peer. */
+export function ComparisonSection({ stock, range }: ComparisonSectionProps) {
   const { t } = useLocale();
   const { formatDisplay } = useCurrency();
   const benchmarkSymbol = stock.symbol === "SPY" ? "QQQ" : "SPY";
@@ -64,8 +64,6 @@ export function StockInsights({ stock, range }: StockInsightsProps) {
 
   const [peerSymbol, setPeerSymbol] = useState(peerCandidates[0]?.symbol ?? benchmarkSymbol);
   const peerStock = getStock(peerSymbol) ?? peerCandidates[0];
-
-  const insights = useMemo(() => buildInsights(stock, t, formatDisplay), [stock, t, formatDisplay]);
 
   const series: ComparisonSeries[] = useMemo(() => {
     const result: ComparisonSeries[] = [
@@ -150,100 +148,74 @@ export function StockInsights({ stock, range }: StockInsightsProps) {
   ];
 
   return (
-    <section className="mt-8 px-4 lg:px-6">
-      <h2 className="text-lg font-semibold text-ink">{t("insights.heading")}</h2>
-      <p className="mt-1 text-[13px] text-ink-faint">
-        {t("insights.subtitle", { symbol: stock.symbol })}
-      </p>
+    <div>
+      <h3 className="text-[15px] font-semibold text-ink">
+        {t("insights.comparisonHeading", { symbol: stock.symbol })}
+      </h3>
+      <p className="mt-1 text-[13px] text-ink-faint">{t("insights.comparisonSubtitle", { range })}</p>
 
-      {/* Glossary cards */}
-      <div className="mt-4 flex flex-col gap-3">
-        {insights.map((item) => (
-          <div key={item.key} className="rounded-2xl bg-surface-2 px-4 py-3.5">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[13px] text-ink-faint">{item.label}</span>
-              <span className="rounded-full bg-surface-3 px-2 py-0.5 text-[11px] font-semibold text-ink-dim">
-                {item.badge}
-              </span>
-            </div>
-            <div className="mt-0.5 text-[17px] font-semibold tabular-nums text-ink">{item.value}</div>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-ink-dim">{item.text}</p>
-          </div>
-        ))}
+      {peerCandidates.length > 0 && (
+        <div className="mt-3 flex gap-2 overflow-x-auto no-scrollbar pb-1">
+          {peerCandidates.map((p) => (
+            <button
+              key={p.symbol}
+              onClick={() => setPeerSymbol(p.symbol)}
+              className={clsx(
+                "shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors cursor-pointer",
+                peerSymbol === p.symbol
+                  ? "bg-brand-soft text-brand-light"
+                  : "bg-surface-2 text-ink-faint hover:text-ink-dim",
+              )}
+            >
+              {t("insights.vsSymbol", { symbol: p.symbol })}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-4">
+        <ComparisonChart series={series} height={200} />
       </div>
 
-      {/* Comparison */}
-      <div className="mt-8">
-        <h3 className="text-[15px] font-semibold text-ink">
-          {t("insights.comparisonHeading", { symbol: stock.symbol })}
-        </h3>
-        <p className="mt-1 text-[13px] text-ink-faint">
-          {t("insights.comparisonSubtitle", { range })}
-        </p>
-
-        {peerCandidates.length > 0 && (
-          <div className="mt-3 flex gap-2 overflow-x-auto no-scrollbar pb-1">
-            {peerCandidates.map((p) => (
-              <button
-                key={p.symbol}
-                onClick={() => setPeerSymbol(p.symbol)}
-                className={clsx(
-                  "shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors cursor-pointer",
-                  peerSymbol === p.symbol
-                    ? "bg-brand-soft text-brand-light"
-                    : "bg-surface-2 text-ink-faint hover:text-ink-dim",
-                )}
-              >
-                {t("insights.vsSymbol", { symbol: p.symbol })}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-4">
-          <ComparisonChart series={series} height={200} />
-        </div>
-
-        <div className="mt-5 overflow-hidden rounded-2xl border border-border-soft">
-          <table className="w-full text-left text-[13px]">
-            <thead>
-              <tr className="border-b border-border-soft bg-surface-2 text-ink-faint">
-                <th className="px-3 py-2 font-medium">{t("insights.metricHeader")}</th>
-                <th className="px-3 py-2 text-right font-medium text-ink">{stock.symbol}</th>
-                <th className="px-3 py-2 text-right font-medium" style={{ color: BENCHMARK_COLOR }}>
-                  {benchmarkStock ? friendlyName(benchmarkStock.symbol) : "—"}
-                </th>
-                <th className="px-3 py-2 text-right font-medium" style={{ color: PEER_COLOR }}>
-                  {peerStock?.symbol ?? "—"}
-                </th>
+      <div className="mt-5 overflow-hidden rounded-2xl border border-border-soft">
+        <table className="w-full text-left text-[13px]">
+          <thead>
+            <tr className="border-b border-border-soft bg-surface-2 text-ink-faint">
+              <th className="px-3 py-2 font-medium">{t("insights.metricHeader")}</th>
+              <th className="px-3 py-2 text-right font-medium text-ink">{stock.symbol}</th>
+              <th className="px-3 py-2 text-right font-medium" style={{ color: BENCHMARK_COLOR }}>
+                {benchmarkStock ? friendlyName(benchmarkStock.symbol) : "—"}
+              </th>
+              <th className="px-3 py-2 text-right font-medium" style={{ color: PEER_COLOR }}>
+                {peerStock?.symbol ?? "—"}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {tableRows.map((row, i) => (
+              <tr key={row.label} className={i % 2 === 1 ? "bg-surface-2/40" : undefined}>
+                <td className="px-3 py-2 text-ink-faint">{row.label}</td>
+                <td className="px-3 py-2 text-right tabular-nums text-ink">{row.stock}</td>
+                <td className="px-3 py-2 text-right tabular-nums text-ink-dim">{row.benchmark}</td>
+                <td className="px-3 py-2 text-right tabular-nums text-ink-dim">{row.peer}</td>
               </tr>
-            </thead>
-            <tbody>
-              {tableRows.map((row, i) => (
-                <tr key={row.label} className={i % 2 === 1 ? "bg-surface-2/40" : undefined}>
-                  <td className="px-3 py-2 text-ink-faint">{row.label}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-ink">{row.stock}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-ink-dim">{row.benchmark}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-ink-dim">{row.peer}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-ink-faint">
-          {benchmarkStock && (
-            <Link to={`/stock/${benchmarkStock.symbol}`} className="hover:text-ink-dim underline decoration-dotted underline-offset-4">
-              {t("insights.openStock", { symbol: friendlyName(benchmarkStock.symbol) })}
-            </Link>
-          )}
-          {peerStock && (
-            <Link to={`/stock/${peerStock.symbol}`} className="hover:text-ink-dim underline decoration-dotted underline-offset-4">
-              {t("insights.openStock", { symbol: peerStock.symbol })}
-            </Link>
-          )}
-        </div>
+            ))}
+          </tbody>
+        </table>
       </div>
-    </section>
+
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-ink-faint">
+        {benchmarkStock && (
+          <Link to={`/stock/${benchmarkStock.symbol}`} className="hover:text-ink-dim underline decoration-dotted underline-offset-4">
+            {t("insights.openStock", { symbol: friendlyName(benchmarkStock.symbol) })}
+          </Link>
+        )}
+        {peerStock && (
+          <Link to={`/stock/${peerStock.symbol}`} className="hover:text-ink-dim underline decoration-dotted underline-offset-4">
+            {t("insights.openStock", { symbol: peerStock.symbol })}
+          </Link>
+        )}
+      </div>
+    </div>
   );
 }
