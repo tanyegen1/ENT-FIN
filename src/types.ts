@@ -51,3 +51,81 @@ export interface TransferRecord {
 }
 
 export type AccountMode = "empty" | "sample";
+
+export interface SupportMessage {
+  id: string;
+  sender: "user" | "support";
+  text: string;
+  timestamp: number;
+}
+
+export type SupportRefType = "order" | "transfer" | "document";
+
+export interface SupportTicket {
+  id: string;
+  refType: SupportRefType;
+  refLabel: string;
+  status: "open" | "answered" | "closed";
+  createdAt: number;
+  messages: SupportMessage[];
+}
+
+export interface RecurringRun {
+  id: string;
+  timestamp: number;
+  status: "success" | "skipped";
+  amount: number;
+}
+
+export interface RecurringPlan {
+  id: string;
+  symbol: string;
+  amount: number;
+  dayOfMonth: number;
+  status: "active" | "paused";
+  createdAt: number;
+  history: RecurringRun[];
+}
+
+export interface GoalContribution {
+  id: string;
+  amount: number;
+  timestamp: number;
+}
+
+export interface Goal {
+  id: string;
+  name: string;
+  targetAmount: number;
+  createdAt: number;
+  contributions: GoalContribution[];
+}
+
+export interface CustomList {
+  id: string;
+  name: string;
+  symbols: string[];
+  notes: Record<string, string>;
+  createdAt: number;
+}
+
+export type NotificationCategory = "money" | "orders" | "recurring" | "documents" | "support" | "priceAlerts";
+
+export interface NotificationItem {
+  id: string;
+  category: NotificationCategory;
+  title: string;
+  body: string;
+  timestamp: number;
+  read: boolean;
+  linkTo: string;
+}
+
+export interface PriceAlert {
+  id: string;
+  symbol: string;
+  direction: "above" | "below";
+  targetPrice: number;
+  createdAt: number;
+  triggeredAt: number | null;
+}

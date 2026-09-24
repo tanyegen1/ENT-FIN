@@ -14,7 +14,10 @@ import { getStock } from "../data/stocks";
 import { getLiveStock, startLiveQuotes, useLiveQuotes } from "../data/liveQuotes";
 import { useAuth } from "./AuthContext";
 import { useOnboarding } from "./OnboardingContext";
+import { useLocale } from "./LocaleContext";
+import { useNotifications } from "./NotificationsContext";
 import { createPortfolio, fetchPortfolio, savePortfolio } from "../lib/portfolioService";
+import { formatCurrency, formatShares } from "../lib/format";
 import { Logo } from "../components/Logo";
 
 const STORAGE_KEY = "arvo.portfolio.v1";
@@ -96,6 +99,8 @@ function loadLocal(mode: AccountMode): PersistedState {
 export function PortfolioProvider({ children }: { children: ReactNode }) {
   const { status, user } = useAuth();
   const { profile } = useOnboarding();
+  const { t } = useLocale();
+  const { addNotification } = useNotifications();
   const mode = profile.mode;
   const isCloud = status === "signed-in" && !!user;
 
@@ -214,7 +219,13 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         orders: [order, ...prev.orders],
       };
     });
-  }, []);
+    addNotification(
+      "orders",
+      t("notifications.orderBoughtTitle"),
+      t("notifications.orderBoughtBody", { shares: formatShares(shares), symbol, amount: formatCurrency(shares * price) }),
+      `/stock/${symbol}`,
+    );
+  }, [addNotification, t]);
 
   const sell = useCallback((symbol: string, shares: number, price: number) => {
     setState((prev) => {
@@ -244,7 +255,13 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         orders: [order, ...prev.orders],
       };
     });
-  }, []);
+    addNotification(
+      "orders",
+      t("notifications.orderSoldTitle"),
+      t("notifications.orderSoldBody", { shares: formatShares(shares), symbol, amount: formatCurrency(shares * price) }),
+      `/stock/${symbol}`,
+    );
+  }, [addNotification, t]);
 
   const deposit = useCallback((amount: number) => {
     if (amount <= 0) return;
@@ -257,7 +274,8 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       };
       return { ...prev, cash: prev.cash + amount, transfers: [transfer, ...prev.transfers] };
     });
-  }, []);
+    addNotification("money", t("notifications.moneyAddedTitle"), t("notifications.moneyAddedBody", { amount: formatCurrency(amount) }), "/account");
+  }, [addNotification, t]);
 
   const withdraw = useCallback((amount: number): boolean => {
     let succeeded = false;
@@ -272,8 +290,16 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       };
       return { ...prev, cash: prev.cash - amount, transfers: [transfer, ...prev.transfers] };
     });
+    if (succeeded) {
+      addNotification(
+        "money",
+        t("notifications.moneyWithdrawnTitle"),
+        t("notifications.moneyWithdrawnBody", { amount: formatCurrency(amount) }),
+        "/account",
+      );
+    }
     return succeeded;
-  }, []);
+  }, [addNotification, t]);
 
   const resetPortfolio = useCallback(() => {
     setState(defaultState(mode));

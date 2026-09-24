@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import clsx from "clsx";
-import { House, Search, ListChecks, CircleUser, Globe } from "lucide-react";
+import { Bell, House, Search, ListChecks, CircleUser, Globe } from "lucide-react";
 import { Logo } from "./Logo";
 import { LocaleCurrencySheet } from "./LocaleCurrencySheet";
 import { useLocale } from "../context/LocaleContext";
 import { useCurrency } from "../context/CurrencyContext";
+import { useNotifications } from "../context/NotificationsContext";
 
 const TAB_TRANSITION = {
   initial: { opacity: 0, y: 10 },
@@ -37,8 +38,10 @@ const NAV_ITEMS = [
 
 export function NavShell() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { locale, t } = useLocale();
   const { displayCurrency } = useCurrency();
+  const { unreadCount } = useNotifications();
   const [showLocaleSheet, setShowLocaleSheet] = useState(false);
 
   return (
@@ -46,9 +49,21 @@ export function NavShell() {
       <div className="mx-auto flex min-h-svh w-full max-w-[1100px] bg-app-bg">
         {/* Desktop sidebar */}
         <aside className="sticky top-0 hidden h-svh w-[220px] shrink-0 flex-col border-r border-border-soft px-3 py-5 lg:flex">
-          <div className="flex items-center gap-2 px-3 pb-8">
-            <Logo />
-            <span className="text-lg font-semibold tracking-tight text-ink">Arvo</span>
+          <div className="flex items-center justify-between gap-2 px-3 pb-8">
+            <div className="flex items-center gap-2">
+              <Logo />
+              <span className="text-lg font-semibold tracking-tight text-ink">Arvo</span>
+            </div>
+            <button
+              onClick={() => navigate("/notifications")}
+              className="relative flex h-8 w-8 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
+              aria-label={t("notifications.title")}
+            >
+              <Bell size={18} />
+              {unreadCount > 0 && (
+                <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-brand" />
+              )}
+            </button>
           </div>
           <nav className="flex flex-col gap-1">
             {NAV_ITEMS.map((item) => (

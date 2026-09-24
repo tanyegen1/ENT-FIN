@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
-import { Navigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
-import { ChevronDown, Star } from "lucide-react";
+import { Bell, ChevronDown, Repeat, Star } from "lucide-react";
 import { getPriceHistory } from "../data/priceHistory";
 import { isLiveSymbol, useStock } from "../data/liveQuotes";
 import { usePortfolio } from "../context/PortfolioContext";
+import { useRecurring } from "../context/RecurringContext";
 import { useLocale } from "../context/LocaleContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { InteractiveChart } from "../components/InteractiveChart";
@@ -12,6 +13,8 @@ import { RangeTabs } from "../components/RangeTabs";
 import { PriceChange } from "../components/PriceChange";
 import { PageHeader } from "../components/PageHeader";
 import { OrderSheet } from "../components/OrderSheet";
+import { RecurringSheet } from "../components/RecurringSheet";
+import { PriceAlertSheet } from "../components/PriceAlertSheet";
 import { LiveDot } from "../components/LiveDot";
 import { StockLogo } from "../components/StockLogo";
 import { InfoTip } from "../components/InfoTip";
@@ -25,12 +28,16 @@ export function StockDetail() {
   const { symbol = "" } = useParams();
   const stock = useStock(symbol.toUpperCase());
   const { getHolding, isWatched, toggleWatchlist } = usePortfolio();
+  const { plans } = useRecurring();
   const { t } = useLocale();
   const { formatDisplay } = useCurrency();
+  const navigate = useNavigate();
   const [range, setRange] = useState<Range>("1D");
   const [scrub, setScrub] = useState<PricePoint | null>(null);
   const [order, setOrder] = useState<"buy" | "sell" | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [recurringOpen, setRecurringOpen] = useState(false);
+  const [alertOpen, setAlertOpen] = useState(false);
 
   const history = useMemo(
     () =>
@@ -44,6 +51,7 @@ export function StockDetail() {
 
   const holding = getHolding(stock.symbol);
   const watched = isWatched(stock.symbol);
+  const existingPlan = plans.find((p) => p.symbol === stock.symbol);
 
   const baseline = range === "1D" ? stock.prevClose : history[0]?.price ?? stock.price;
   const displayPrice = scrub ? scrub.price : stock.price;
@@ -198,6 +206,26 @@ export function StockDetail() {
           </motion.button>
         </div>
 
+        <motion.button
+          onClick={() => setRecurringOpen(true)}
+          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-full border border-dashed border-border py-2.5 text-[13px] font-semibold text-ink-dim hover:bg-surface-2 cursor-pointer"
+          whileTap={{ scale: 0.98 }}
+          transition={{ duration: 0.12 }}
+        >
+          <Repeat size={14} />
+          {existingPlan ? t("recurring.editTitle") : t("recurring.createCta")}
+        </motion.button>
+
+        <motion.button
+          onClick={() => setAlertOpen(true)}
+          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-full border border-dashed border-border py-2.5 text-[13px] font-semibold text-ink-dim hover:bg-surface-2 cursor-pointer"
+          whileTap={{ scale: 0.98 }}
+          transition={{ duration: 0.12 }}
+        >
+          <Bell size={14} />
+          {t("priceAlerts.createCta")}
+        </motion.button>
+
         <div className="mt-8">
           <ComparisonSection stock={stock} range={range} />
         </div>
@@ -251,6 +279,19 @@ export function StockDetail() {
 
       <AnimatePresence>
         {order && <OrderSheet stock={stock} initialSide={order} onClose={() => setOrder(null)} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {recurringOpen && (
+          <RecurringSheet
+            symbol={stock.symbol}
+            existingPlan={existingPlan}
+            onClose={() => setRecurringOpen(false)}
+            onSaved={() => navigate("/recurring")}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {alertOpen && <PriceAlertSheet stock={stock} onClose={() => setAlertOpen(false)} />}
       </AnimatePresence>
     </div>
   );

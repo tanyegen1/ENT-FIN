@@ -1,11 +1,12 @@
 import { useMemo, useState, type ComponentType } from "react";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowDownToLine, ArrowUpFromLine, Globe, TrendingUp } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Bell, Globe, TrendingUp } from "lucide-react";
 import { usePortfolio } from "../context/PortfolioContext";
 import { useAuth } from "../context/AuthContext";
 import { useLocale } from "../context/LocaleContext";
 import { useCurrency } from "../context/CurrencyContext";
+import { useNotifications } from "../context/NotificationsContext";
 import { getStock } from "../data/stocks";
 import { getPortfolioHistory } from "../data/portfolioHistory";
 import { useLiveQuotes } from "../data/liveQuotes";
@@ -60,6 +61,7 @@ export function Home() {
   const { user } = useAuth();
   const { t } = useLocale();
   const { displayCurrency, formatDisplay } = useCurrency();
+  const { unreadCount } = useNotifications();
   const [range, setRange] = useState<Range>("1D");
   const [scrub, setScrub] = useState<PricePoint | null>(null);
   const [cashMode, setCashMode] = useState<"deposit" | "withdraw" | null>(null);
@@ -111,6 +113,14 @@ export function Home() {
           {displayCurrency === "USD" ? "$" : "₺"}
         </button>
         <Link
+          to="/notifications"
+          aria-label={t("notifications.title")}
+          className="relative flex h-9 w-9 items-center justify-center rounded-full bg-surface-2 text-ink-dim hover:bg-surface-3 lg:hidden"
+        >
+          <Bell size={16} />
+          {unreadCount > 0 && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-brand" />}
+        </Link>
+        <Link
           to="/account"
           className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full brand-gradient text-sm font-semibold text-white lg:hidden"
         >
@@ -157,7 +167,7 @@ export function Home() {
         </div>
 
         {/* Q2: How am I doing? — investment gain/loss, kept separate from cash added */}
-        <div className="mt-2 rounded-xl bg-surface-2 px-3.5 py-3">
+        <Link to="/performance" className="mt-2 block rounded-xl bg-surface-2 px-3.5 py-3 hover:bg-surface-3">
           <div className="text-[12px] text-ink-faint">{t("home.gainLoss")}</div>
           <div className="mt-0.5">
             <PriceChange
@@ -168,7 +178,7 @@ export function Home() {
             />
           </div>
           <div className="mt-1 text-[11px] text-ink-faint">{t("home.gainLossHint")}</div>
-        </div>
+        </Link>
 
         {/* Q3: What can I do next? */}
         <div className="mt-4 flex gap-1">

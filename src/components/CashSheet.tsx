@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { Keypad } from "./Keypad";
 import { SuccessBurst } from "./SuccessBurst";
 import { InfoTip } from "./InfoTip";
+import { GetHelpButton } from "./GetHelpButton";
 import { usePortfolio } from "../context/PortfolioContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { useLocale } from "../context/LocaleContext";
@@ -239,9 +240,13 @@ function CashSuccess({ mode, amount, onClose }: { mode: Mode; amount: number; on
           {formatCurrency(animated)}
         </div>
       </div>
+      <GetHelpButton
+        refType="transfer"
+        refLabel={`${mode === "deposit" ? t("account.addedCash") : t("account.withdrewCash")} · ${formatCurrency(amount)}`}
+      />
       <motion.button
         onClick={onClose}
-        className="mt-4 w-full rounded-full bg-surface-2 py-3.5 text-[15px] font-semibold text-ink hover:bg-surface-3 cursor-pointer"
+        className="mt-1 w-full rounded-full bg-surface-2 py-3.5 text-[15px] font-semibold text-ink hover:bg-surface-3 cursor-pointer"
         whileTap={{ scale: 0.97 }}
         transition={{ duration: 0.12 }}
       >

@@ -8,15 +8,17 @@ import {
   Bell,
   ChevronRight,
   CloudOff,
-  FileText,
   FlaskConical,
   Globe,
+  BarChart3,
   HelpCircle,
   LogIn,
   LogOut,
   Receipt,
+  Repeat,
   RotateCcw,
   ShieldCheck,
+  Target,
   User,
 } from "lucide-react";
 import { usePortfolio } from "../context/PortfolioContext";
@@ -25,6 +27,7 @@ import { useLocale } from "../context/LocaleContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { ConfirmSheet } from "../components/ConfirmSheet";
 import { LocaleCurrencySheet } from "../components/LocaleCurrencySheet";
+import { GetHelpButton } from "../components/GetHelpButton";
 import { formatCurrency, formatCurrencyPrecise, formatShares } from "../lib/format";
 import type { OrderRecord, TransferRecord } from "../types";
 
@@ -54,12 +57,14 @@ export function Account() {
     error: "bg-down",
   };
 
-  const SETTINGS_ROWS = [
+  const SETTINGS_ROWS: { icon: typeof Banknote; label: string; to?: string }[] = [
     { icon: Banknote, label: t("account.settingsTransfers") },
-    { icon: FileText, label: t("account.settingsStatements") },
-    { icon: Bell, label: t("account.settingsNotifications") },
+    { icon: BarChart3, label: t("performance.title"), to: "/performance" },
+    { icon: Target, label: t("goals.title"), to: "/goals" },
+    { icon: Repeat, label: t("recurring.title"), to: "/recurring" },
+    { icon: Bell, label: t("account.settingsNotifications"), to: "/notifications" },
     { icon: ShieldCheck, label: t("account.settingsSecurity") },
-    { icon: HelpCircle, label: t("account.settingsHelp") },
+    { icon: HelpCircle, label: t("account.settingsHelp"), to: "/support" },
   ];
 
   const activity: ActivityItem[] = useMemo(() => {
@@ -162,18 +167,30 @@ export function Account() {
           <span className="flex-1 text-[15px] text-ink">{t("account.settingsTaxCenter")}</span>
           <ChevronRight size={18} className="text-ink-faint" />
         </Link>
-        {SETTINGS_ROWS.map((row) => (
-          <motion.button
-            key={row.label}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-left hover:bg-surface-2 cursor-pointer"
-            whileTap={{ scale: 0.98, backgroundColor: "var(--color-surface-2)" }}
-            transition={{ duration: 0.12 }}
-          >
-            <row.icon size={20} className="text-ink-dim" />
-            <span className="flex-1 text-[15px] text-ink">{row.label}</span>
-            <ChevronRight size={18} className="text-ink-faint" />
-          </motion.button>
-        ))}
+        {SETTINGS_ROWS.map((row) =>
+          row.to ? (
+            <Link
+              key={row.label}
+              to={row.to}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-left hover:bg-surface-2"
+            >
+              <row.icon size={20} className="text-ink-dim" />
+              <span className="flex-1 text-[15px] text-ink">{row.label}</span>
+              <ChevronRight size={18} className="text-ink-faint" />
+            </Link>
+          ) : (
+            <motion.button
+              key={row.label}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-left hover:bg-surface-2 cursor-pointer"
+              whileTap={{ scale: 0.98, backgroundColor: "var(--color-surface-2)" }}
+              transition={{ duration: 0.12 }}
+            >
+              <row.icon size={20} className="text-ink-dim" />
+              <span className="flex-1 text-[15px] text-ink">{row.label}</span>
+              <ChevronRight size={18} className="text-ink-faint" />
+            </motion.button>
+          ),
+        )}
         <motion.button
           onClick={() => setShowResetConfirm(true)}
           className="flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-left hover:bg-surface-2 cursor-pointer"
@@ -215,49 +232,63 @@ export function Account() {
           <p className="mt-2 text-sm text-ink-faint">{t("account.noActivity")}</p>
         )}
         <div className="mt-2 flex flex-col divide-y divide-border-soft">
-          {activity.map((item) => (
-            <div key={item.data.id} className="flex items-center gap-3 py-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-2 text-ink-dim">
-                {item.kind === "transfer" ? (
-                  item.data.type === "deposit" ? (
+          {activity.map((item) => {
+            const dateLabel = new Date(item.timestamp).toLocaleDateString(locale === "tr" ? "tr-TR" : undefined, {
+              month: "short",
+              day: "numeric",
+            });
+            const refLabel =
+              item.kind === "transfer"
+                ? `${item.data.type === "deposit" ? t("account.addedCash") : t("account.withdrewCash")} · ${formatCurrency(item.data.amount)} · ${dateLabel}`
+                : `${item.data.side === "buy" ? t("account.bought") : t("account.sold")} ${item.data.symbol} · ${formatCurrency(item.data.total)} · ${dateLabel}`;
+            return (
+              <div key={item.data.id} className="flex items-center gap-3 py-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-2 text-ink-dim">
+                  {item.kind === "transfer" ? (
+                    item.data.type === "deposit" ? (
+                      <ArrowDownToLine size={15} />
+                    ) : (
+                      <ArrowUpFromLine size={15} />
+                    )
+                  ) : item.data.side === "buy" ? (
                     <ArrowDownToLine size={15} />
                   ) : (
                     <ArrowUpFromLine size={15} />
-                  )
-                ) : item.data.side === "buy" ? (
-                  <ArrowDownToLine size={15} />
-                ) : (
-                  <ArrowUpFromLine size={15} />
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-[14px] font-medium text-ink">
-                  {item.kind === "transfer" ? (
-                    item.data.type === "deposit" ? t("account.addedCash") : t("account.withdrewCash")
-                  ) : (
-                    <>
-                      <span className={item.data.side === "buy" ? "text-up" : "text-down"}>
-                        {item.data.side === "buy" ? t("account.bought") : t("account.sold")}
-                      </span>{" "}
-                      {item.data.symbol}
-                    </>
                   )}
                 </div>
-                <div className="text-[13px] text-ink-faint">
-                  {item.kind === "order" &&
-                    `${formatShares(item.data.shares)} sh @ ${formatCurrencyPrecise(item.data.price)} · `}
-                  {new Date(item.timestamp).toLocaleDateString(locale === "tr" ? "tr-TR" : undefined, {
-                    month: "short",
-                    day: "numeric",
-                  })}
+                <div className="min-w-0 flex-1">
+                  <div className="text-[14px] font-medium text-ink">
+                    {item.kind === "transfer" ? (
+                      item.data.type === "deposit" ? t("account.addedCash") : t("account.withdrewCash")
+                    ) : (
+                      <>
+                        <span className={item.data.side === "buy" ? "text-up" : "text-down"}>
+                          {item.data.side === "buy" ? t("account.bought") : t("account.sold")}
+                        </span>{" "}
+                        {item.data.symbol}
+                      </>
+                    )}
+                  </div>
+                  <div className="text-[13px] text-ink-faint">
+                    {item.kind === "order" &&
+                      `${formatShares(item.data.shares)} sh @ ${formatCurrencyPrecise(item.data.price)} · `}
+                    {dateLabel}
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <div className="text-[14px] font-medium tabular-nums text-ink">
+                    {item.kind === "transfer" && item.data.type === "withdraw" ? "-" : ""}
+                    {formatCurrency(item.kind === "transfer" ? item.data.amount : item.data.total)}
+                  </div>
+                  <GetHelpButton
+                    refType={item.kind === "transfer" ? "transfer" : "order"}
+                    refLabel={refLabel}
+                    className="text-[11px] font-medium text-ink-faint underline decoration-dotted underline-offset-4 hover:text-brand-light cursor-pointer"
+                  />
                 </div>
               </div>
-              <div className="text-[14px] font-medium tabular-nums text-ink">
-                {item.kind === "transfer" && item.data.type === "withdraw" ? "-" : ""}
-                {formatCurrency(item.kind === "transfer" ? item.data.amount : item.data.total)}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 

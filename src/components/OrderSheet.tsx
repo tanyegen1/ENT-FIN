@@ -6,6 +6,7 @@ import type { Stock } from "../types";
 import { Keypad } from "./Keypad";
 import { SuccessBurst } from "./SuccessBurst";
 import { InfoTip } from "./InfoTip";
+import { GetHelpButton } from "./GetHelpButton";
 import { usePortfolio } from "../context/PortfolioContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { useLocale } from "../context/LocaleContext";
@@ -380,9 +381,14 @@ function SuccessStep({ side, shares, cost, stock, onClose }: SuccessStepProps) {
         {formatShares(shares)} {t("orderSheet.sharesAt")} {formatCurrencyPrecise(stock.price)}
       </div>
 
+      <GetHelpButton
+        refType="order"
+        refLabel={`${side === "buy" ? t("orderSheet.bought") : t("orderSheet.sold")} ${stock.symbol} · ${formatCurrency(cost)}`}
+      />
+
       <motion.button
         onClick={onClose}
-        className="mt-4 w-full rounded-full bg-surface-2 py-3.5 text-[15px] font-semibold text-ink hover:bg-surface-3 cursor-pointer"
+        className="mt-1 w-full rounded-full bg-surface-2 py-3.5 text-[15px] font-semibold text-ink hover:bg-surface-3 cursor-pointer"
         whileTap={{ scale: 0.97 }}
         transition={{ duration: 0.12 }}
       >

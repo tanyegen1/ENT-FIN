@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import { Bell, Check, Download, TriangleAlert } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
+import { GetHelpButton } from "../components/GetHelpButton";
 import { useLocale } from "../context/LocaleContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { formatCurrency } from "../lib/format";
@@ -211,22 +212,25 @@ export function TaxCenter() {
               <StatusBadge status="available" />
             </div>
             <p className="mt-1 text-[13px] text-ink-faint">{t("taxCenter.doc1099bDesc")}</p>
-            <button
-              onClick={() =>
-                downloadDoc(
-                  t("taxCenter.doc1099bName"),
-                  [
-                    `${t("taxCenter.shortTerm")}: +${formatCurrency(REALIZED_SHORT_TERM)}`,
-                    `${t("taxCenter.longTerm")}: +${formatCurrency(REALIZED_LONG_TERM)}`,
-                    `${t("taxCenter.totalRealized")}: +${formatCurrency(totalRealized)}`,
-                  ],
-                  "arvo-sample-1099b.txt",
-                )
-              }
-              className="mt-2.5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-brand-light hover:brightness-125 cursor-pointer"
-            >
-              <Download size={14} /> {t("taxCenter.download")}
-            </button>
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              <button
+                onClick={() =>
+                  downloadDoc(
+                    t("taxCenter.doc1099bName"),
+                    [
+                      `${t("taxCenter.shortTerm")}: +${formatCurrency(REALIZED_SHORT_TERM)}`,
+                      `${t("taxCenter.longTerm")}: +${formatCurrency(REALIZED_LONG_TERM)}`,
+                      `${t("taxCenter.totalRealized")}: +${formatCurrency(totalRealized)}`,
+                    ],
+                    "arvo-sample-1099b.txt",
+                  )
+                }
+                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-brand-light hover:brightness-125 cursor-pointer"
+              >
+                <Download size={14} /> {t("taxCenter.download")}
+              </button>
+              <GetHelpButton refType="document" refLabel={t("taxCenter.doc1099bName")} />
+            </div>
           </div>
 
           <div className="rounded-2xl bg-surface-2 px-4 py-3.5">
@@ -235,18 +239,21 @@ export function TaxCenter() {
               <StatusBadge status="available" />
             </div>
             <p className="mt-1 text-[13px] text-ink-faint">{t("taxCenter.doc1099divDesc")}</p>
-            <button
-              onClick={() =>
-                downloadDoc(
-                  t("taxCenter.doc1099divName"),
-                  [`${t("taxCenter.dividendHeading")}: ${formatCurrency(DIVIDEND_INCOME)}`],
-                  "arvo-sample-1099div.txt",
-                )
-              }
-              className="mt-2.5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-brand-light hover:brightness-125 cursor-pointer"
-            >
-              <Download size={14} /> {t("taxCenter.download")}
-            </button>
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              <button
+                onClick={() =>
+                  downloadDoc(
+                    t("taxCenter.doc1099divName"),
+                    [`${t("taxCenter.dividendHeading")}: ${formatCurrency(DIVIDEND_INCOME)}`],
+                    "arvo-sample-1099div.txt",
+                  )
+                }
+                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-brand-light hover:brightness-125 cursor-pointer"
+              >
+                <Download size={14} /> {t("taxCenter.download")}
+              </button>
+              <GetHelpButton refType="document" refLabel={t("taxCenter.doc1099divName")} />
+            </div>
           </div>
 
           <div className="rounded-2xl bg-surface-2 px-4 py-3.5">
@@ -255,6 +262,9 @@ export function TaxCenter() {
               <StatusBadge status="action" />
             </div>
             <p className="mt-1 text-[13px] text-ink-faint">{t("taxCenter.docCostBasisDesc")}</p>
+            <div className="mt-2.5">
+              <GetHelpButton refType="document" refLabel={t("taxCenter.docCostBasisName")} />
+            </div>
           </div>
 
           <div className="rounded-2xl bg-surface-2 px-4 py-3.5">
@@ -290,6 +300,7 @@ export function TaxCenter() {
                   <Check size={14} /> {t("taxCenter.markReviewed")}
                 </motion.button>
               )}
+              <GetHelpButton refType="document" refLabel={t("taxCenter.docAnnualName")} />
             </div>
             {reviewedAt !== null && (
               <p className="mt-1.5 text-[12px] text-ink-faint">
