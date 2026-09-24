@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowDownToLine,
@@ -13,6 +14,7 @@ import {
   HelpCircle,
   LogIn,
   LogOut,
+  Receipt,
   RotateCcw,
   ShieldCheck,
   User,
@@ -152,6 +154,14 @@ export function Account() {
           </span>
           <ChevronRight size={18} className="text-ink-faint" />
         </motion.button>
+        <Link
+          to="/taxes"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-left hover:bg-surface-2"
+        >
+          <Receipt size={20} className="text-ink-dim" />
+          <span className="flex-1 text-[15px] text-ink">{t("account.settingsTaxCenter")}</span>
+          <ChevronRight size={18} className="text-ink-faint" />
+        </Link>
         {SETTINGS_ROWS.map((row) => (
           <motion.button
             key={row.label}

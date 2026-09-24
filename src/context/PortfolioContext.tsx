@@ -44,6 +44,10 @@ interface PortfolioContextValue extends PersistedState {
   getHolding: (symbol: string) => Holding | undefined;
   equityValue: number;
   totalValue: number;
+  /** Cash held back from spending — always $0 in this MVP since practice trades settle instantly. */
+  reservedCash: number;
+  /** Cash minus reservedCash — the actual amount available to invest or withdraw right now. */
+  spendableCash: number;
   syncStatus: SyncStatus;
 }
 
@@ -305,6 +309,8 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   );
 
   const totalValue = equityValue + state.cash;
+  const reservedCash = 0;
+  const spendableCash = state.cash - reservedCash;
 
   const value: PortfolioContextValue = {
     ...state,
@@ -318,6 +324,8 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     getHolding,
     equityValue,
     totalValue,
+    reservedCash,
+    spendableCash,
     syncStatus,
   };
 

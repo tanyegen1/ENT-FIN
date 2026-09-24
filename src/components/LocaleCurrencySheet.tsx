@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 import { X } from "lucide-react";
 import { useLocale, type Locale } from "../context/LocaleContext";
 import { useCurrency, type DisplayCurrency } from "../context/CurrencyContext";
+import { useTheme, type Theme } from "../context/ThemeContext";
 
 const SHEET_SPRING = { type: "spring", stiffness: 420, damping: 38 } as const;
 
@@ -12,6 +13,7 @@ interface LocaleCurrencySheetProps {
 export function LocaleCurrencySheet({ onClose }: LocaleCurrencySheetProps) {
   const { locale, setLocale, t } = useLocale();
   const { displayCurrency, setDisplayCurrency } = useCurrency();
+  const { theme, setTheme } = useTheme();
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center lg:items-center">
@@ -85,6 +87,31 @@ export function LocaleCurrencySheet({ onClose }: LocaleCurrencySheetProps) {
                 )}
                 <span className={`relative z-10 ${displayCurrency === c ? "text-brand-light" : "text-ink-faint"}`}>
                   {c === "USD" ? t("localeCurrency.usd") : t("localeCurrency.try_")}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-2 text-[13px] font-medium text-ink-faint">{t("localeCurrency.appearanceLabel")}</div>
+          <div className="relative flex rounded-full bg-surface-2 p-1">
+            {(["dark", "light"] as Theme[]).map((th) => (
+              <button
+                key={th}
+                type="button"
+                onClick={() => setTheme(th)}
+                className="relative flex-1 rounded-full py-2.5 text-[14px] font-semibold cursor-pointer"
+              >
+                {theme === th && (
+                  <motion.div
+                    layoutId="theme-pill"
+                    className="absolute inset-0 rounded-full bg-brand-soft"
+                    transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                  />
+                )}
+                <span className={`relative z-10 ${theme === th ? "text-brand-light" : "text-ink-faint"}`}>
+                  {th === "dark" ? t("localeCurrency.dark") : t("localeCurrency.light")}
                 </span>
               </button>
             ))}

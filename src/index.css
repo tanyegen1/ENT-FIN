@@ -1,35 +1,91 @@
 @import "tailwindcss";
 
+/* Theme variables are one level of indirection (--color-x: var(--t-x))
+   so runtime theme switching (via [data-theme] on <html>) can repoint
+   every utility class at once without regenerating Tailwind's CSS. */
 @theme {
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Consolas, monospace;
 
-  /* Near-black with a faint cool undertone rather than flat gray —
-     reads as "black theme" while giving surfaces some depth. */
-  --color-app-bg: #030408;
-  --color-surface: #0a0b12;
-  --color-surface-2: #12131d;
-  --color-surface-3: #1a1c29;
-  --color-border: #272a3a;
-  --color-border-soft: #171825;
+  --color-app-bg: var(--t-app-bg);
+  --color-surface: var(--t-surface);
+  --color-surface-2: var(--t-surface-2);
+  --color-surface-3: var(--t-surface-3);
+  --color-border: var(--t-border);
+  --color-border-soft: var(--t-border-soft);
 
-  --color-ink: #ffffff;
-  --color-ink-dim: #a3a6b8;
-  --color-ink-faint: #6c6f83;
+  --color-ink: var(--t-ink);
+  --color-ink-dim: var(--t-ink-dim);
+  --color-ink-faint: var(--t-ink-faint);
+
+  --color-up: var(--t-up);
+  --color-up-soft: var(--t-up-soft);
+  --color-down: var(--t-down);
+  --color-down-soft: var(--t-down-soft);
+
+  --color-brand: var(--t-brand);
+  --color-brand-light: var(--t-brand-light);
+  --color-brand-soft: var(--t-brand-soft);
+  --color-brand-ink: var(--t-brand-ink);
+}
+
+/* Dark theme (default) — near-black with a faint cool undertone rather
+   than flat gray, reads as "black theme" while giving surfaces depth. */
+:root,
+:root[data-theme="dark"] {
+  --t-app-bg: #030408;
+  --t-surface: #0a0b12;
+  --t-surface-2: #12131d;
+  --t-surface-3: #1a1c29;
+  --t-border: #272a3a;
+  --t-border-soft: #171825;
+
+  --t-ink: #ffffff;
+  --t-ink-dim: #a3a6b8;
+  --t-ink-faint: #6c6f83;
 
   /* Reserved for financial meaning only — gains/losses, price direction.
      Never repurposed as a generic UI accent. */
-  --color-up: #00c805;
-  --color-up-soft: #00c80520;
-  --color-down: #ff5000;
-  --color-down-soft: #ff500020;
+  --t-up: #00c805;
+  --t-up-soft: #00c80520;
+  --t-down: #ff5000;
+  --t-down-soft: #ff500020;
 
   /* Arvo brand blue, sampled from the logo (#1959e9) — the app's one
      accent color for brand, actions, and interactive/selected states. */
-  --color-brand: #1959e9;
-  --color-brand-light: #5b8def;
-  --color-brand-soft: #1959e926;
-  --color-brand-ink: #ffffff;
+  --t-brand: #1959e9;
+  --t-brand-light: #5b8def;
+  --t-brand-soft: #1959e926;
+  --t-brand-ink: #ffffff;
+
+  color-scheme: dark;
+}
+
+/* Light theme — surfaces get progressively grayer as elevation rises
+   (opposite direction from dark mode), matching how light UIs read. */
+:root[data-theme="light"] {
+  --t-app-bg: #ffffff;
+  --t-surface: #ffffff;
+  --t-surface-2: #f2f3f6;
+  --t-surface-3: #e7e8ee;
+  --t-border: #dcdee6;
+  --t-border-soft: #eceef2;
+
+  --t-ink: #0a0b12;
+  --t-ink-dim: #565968;
+  --t-ink-faint: #8a8da0;
+
+  --t-up: #0a9600;
+  --t-up-soft: #0a960015;
+  --t-down: #d64400;
+  --t-down-soft: #d6440015;
+
+  --t-brand: #1959e9;
+  --t-brand-light: #3b6fec;
+  --t-brand-soft: #1959e91a;
+  --t-brand-ink: #ffffff;
+
+  color-scheme: light;
 }
 
 html, body, #root {

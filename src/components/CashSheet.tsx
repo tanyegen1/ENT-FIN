@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import clsx from "clsx";
 import { Keypad } from "./Keypad";
 import { SuccessBurst } from "./SuccessBurst";
+import { InfoTip } from "./InfoTip";
 import { usePortfolio } from "../context/PortfolioContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { useLocale } from "../context/LocaleContext";
@@ -22,7 +23,7 @@ interface CashSheetProps {
 }
 
 export function CashSheet({ mode, onClose }: CashSheetProps) {
-  const { cash, deposit, withdraw } = usePortfolio();
+  const { cash, reservedCash, spendableCash, deposit, withdraw } = usePortfolio();
   const { displayCurrency } = useCurrency();
   const { t } = useLocale();
   const [raw, setRaw] = useState("0");
@@ -37,7 +38,7 @@ export function CashSheet({ mode, onClose }: CashSheetProps) {
   }, []);
 
   const amount = Number(raw) || 0;
-  const overWithdraw = mode === "withdraw" && amount > cash + 0.005;
+  const overWithdraw = mode === "withdraw" && amount > spendableCash + 0.005;
   const canConfirm = amount > 0 && !overWithdraw;
 
   const handleDigit = (d: string) => {
@@ -69,7 +70,7 @@ export function CashSheet({ mode, onClose }: CashSheetProps) {
     }
   };
 
-  const withdrawAll = () => setRaw(cash.toFixed(2));
+  const handleMax = () => setRaw(spendableCash.toFixed(2));
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center lg:items-center">
@@ -125,13 +126,48 @@ export function CashSheet({ mode, onClose }: CashSheetProps) {
                 <div className="flex flex-col items-center gap-2 px-4 py-8">
                   <div className="text-5xl font-semibold tabular-nums text-ink">${raw}</div>
                   {overWithdraw && (
-                    <span className="text-sm font-medium text-down">{t("cashSheet.exceedsCash")}</span>
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-sm font-medium text-down">
+                        {t("cashSheet.exceedsWithdrawDetail", { amount: formatCurrency(spendableCash) })}
+                      </span>
+                      <button
+                        onClick={handleMax}
+                        className="text-sm font-semibold text-brand-light underline decoration-dotted underline-offset-4 cursor-pointer"
+                      >
+                        {t("common.fixToAmount", { amount: `$${spendableCash.toFixed(2)}` })}
+                      </button>
+                    </div>
                   )}
                 </div>
 
                 <div className="flex items-center justify-between px-4 pb-4 text-[13px] text-ink-faint">
-                  <span>{t("cashSheet.buyingPower")}</span>
-                  <span className="tabular-nums text-ink-dim">{formatCurrency(cash)}</span>
+                  <span className="flex items-center gap-1">
+                    {t("cashSheet.buyingPower")}
+                    {mode === "withdraw" && (
+                      <InfoTip
+                        width={240}
+                        definition={
+                          <div className="flex flex-col gap-1.5">
+                            <div className="font-semibold text-ink">{t("orderSheet.cashBreakdownTitle")}</div>
+                            <div className="flex justify-between gap-3">
+                              <span>{t("common.totalCash")}</span>
+                              <span className="tabular-nums text-ink">{formatCurrency(cash)}</span>
+                            </div>
+                            <div className="flex justify-between gap-3">
+                              <span>{t("common.reservedCash")}</span>
+                              <span className="tabular-nums text-ink">{formatCurrency(reservedCash)}</span>
+                            </div>
+                            <div className="flex justify-between gap-3 font-medium text-ink">
+                              <span>{t("common.spendableCash")}</span>
+                              <span className="tabular-nums">{formatCurrency(spendableCash)}</span>
+                            </div>
+                            <p className="pt-1 text-ink-faint">{t("common.reservedExplanationZero")}</p>
+                          </div>
+                        }
+                      />
+                    )}
+                  </span>
+                  <span className="tabular-nums text-ink-dim">{formatCurrency(spendableCash)}</span>
                 </div>
 
                 <div className="flex gap-2 overflow-x-auto no-scrollbar px-4 pb-4">
@@ -147,10 +183,10 @@ export function CashSheet({ mode, onClose }: CashSheetProps) {
                       ))
                     : (
                         <button
-                          onClick={withdrawAll}
+                          onClick={handleMax}
                           className="shrink-0 rounded-full bg-brand-soft px-4 py-2 text-[13px] font-semibold text-brand-light hover:brightness-125 cursor-pointer"
                         >
-                          {t("cashSheet.withdrawAll")}
+                          {t("common.useMaximum")}
                         </button>
                       )}
                 </div>

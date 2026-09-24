@@ -5,6 +5,7 @@ import clsx from "clsx";
 import type { Stock } from "../types";
 import { Keypad } from "./Keypad";
 import { SuccessBurst } from "./SuccessBurst";
+import { InfoTip } from "./InfoTip";
 import { usePortfolio } from "../context/PortfolioContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { useLocale } from "../context/LocaleContext";
@@ -30,7 +31,7 @@ interface OrderSheetProps {
 }
 
 export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
-  const { cash, getHolding, buy, sell } = usePortfolio();
+  const { cash, reservedCash, spendableCash, getHolding, buy, sell } = usePortfolio();
   const { displayCurrency, formatDisplay } = useCurrency();
   const { t } = useLocale();
   const [side, setSide] = useState<Side>(initialSide);
@@ -52,14 +53,25 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
   const shares = mode === "dollars" ? amount / stock.price : amount;
   const cost = mode === "dollars" ? amount : amount * stock.price;
 
-  const overBuy = side === "buy" && amount > 0 && cost > cash + 0.005;
+  const overBuy = side === "buy" && amount > 0 && cost > spendableCash + 0.005;
   const overSell = side === "sell" && amount > 0 && shares > ownedShares + 0.000001;
   const canReview = amount > 0 && !overBuy && !overSell;
 
+  const maxRaw =
+    side === "buy"
+      ? mode === "dollars"
+        ? spendableCash.toFixed(2)
+        : formatShares(spendableCash / stock.price)
+      : mode === "shares"
+        ? formatShares(ownedShares)
+        : (ownedShares * stock.price).toFixed(2);
+  const handleMax = () => setRaw(maxRaw);
+  const maxDisplay = mode === "dollars" ? `$${maxRaw}` : `${maxRaw} ${t("orderSheet.shares")}`;
+
   const errorMessage = overBuy
-    ? t("orderSheet.notEnoughBuyingPower")
+    ? t("orderSheet.needMoreFunds", { amount: formatCurrency(cost - spendableCash) })
     : overSell
-      ? t("orderSheet.notEnoughShares")
+      ? t("orderSheet.onlyOwnShares", { shares: formatShares(ownedShares), symbol: stock.symbol })
       : null;
 
   const handleDigit = (d: string) => {
@@ -174,8 +186,22 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
                   : `≈ ${formatCurrency(cost)}`}
                 &nbsp;· {mode === "dollars" ? t("orderSheet.switchToShares") : t("orderSheet.switchToDollars")}
               </button>
+              <button
+                onClick={handleMax}
+                className="text-[13px] font-semibold text-brand-light hover:brightness-125 cursor-pointer"
+              >
+                {t("common.useMaximum")}
+              </button>
               {errorMessage && (
-                <span className="text-sm font-medium text-down">{errorMessage}</span>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-sm font-medium text-down">{errorMessage}</span>
+                  <button
+                    onClick={handleMax}
+                    className="text-sm font-semibold text-brand-light underline decoration-dotted underline-offset-4 cursor-pointer"
+                  >
+                    {t("common.fixToAmount", { amount: maxDisplay })}
+                  </button>
+                </div>
               )}
               {displayCurrency === "TRY" && (
                 <span className="text-center text-[12px] text-ink-faint">{t("orderSheet.usdNote")}</span>
@@ -189,10 +215,35 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
               </span>
             </div>
             <div className="flex items-center justify-between px-4 pb-4 text-[13px] text-ink-faint">
-              <span>{side === "buy" ? t("orderSheet.buyingPower") : t("orderSheet.sharesOwned")}</span>
+              <span className="flex items-center gap-1">
+                {side === "buy" ? t("orderSheet.buyingPower") : t("orderSheet.sharesOwned")}
+                {side === "buy" && (
+                  <InfoTip
+                    width={240}
+                    definition={
+                      <div className="flex flex-col gap-1.5">
+                        <div className="font-semibold text-ink">{t("orderSheet.cashBreakdownTitle")}</div>
+                        <div className="flex justify-between gap-3">
+                          <span>{t("common.totalCash")}</span>
+                          <span className="tabular-nums text-ink">{formatCurrency(cash)}</span>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                          <span>{t("common.reservedCash")}</span>
+                          <span className="tabular-nums text-ink">{formatCurrency(reservedCash)}</span>
+                        </div>
+                        <div className="flex justify-between gap-3 font-medium text-ink">
+                          <span>{t("common.spendableCash")}</span>
+                          <span className="tabular-nums">{formatCurrency(spendableCash)}</span>
+                        </div>
+                        <p className="pt-1 text-ink-faint">{t("common.reservedExplanationZero")}</p>
+                      </div>
+                    }
+                  />
+                )}
+              </span>
               <span className="tabular-nums text-ink-dim">
                 {side === "buy"
-                  ? formatCurrency(cash)
+                  ? formatCurrency(spendableCash)
                   : `${formatShares(ownedShares)} sh`}
               </span>
             </div>
@@ -270,7 +321,7 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
               <div className="flex justify-between">
                 <dt className="text-ink-faint">{t("orderSheet.remainingCash")}</dt>
                 <dd className="tabular-nums text-ink">
-                  {formatCurrency(side === "buy" ? cash - cost : cash + cost)}
+                  {formatCurrency(side === "buy" ? spendableCash - cost : spendableCash + cost)}
                 </dd>
               </div>
             </dl>
