@@ -7,6 +7,7 @@ import { SuccessBurst } from "./SuccessBurst";
 import { useLocale } from "../context/LocaleContext";
 import { useGoals } from "../context/GoalsContext";
 import { useCountUp } from "../hooks/useCountUp";
+import { useDraftAmount } from "../hooks/useDraftAmount";
 import { formatCurrency } from "../lib/format";
 import type { Goal } from "../types";
 
@@ -23,7 +24,7 @@ interface GoalContributeSheetProps {
 export function GoalContributeSheet({ goal, onClose }: GoalContributeSheetProps) {
   const { t } = useLocale();
   const { contribute } = useGoals();
-  const [raw, setRaw] = useState("0");
+  const [raw, setRaw, clearDraft] = useDraftAmount(`goal.${goal.id}`);
   const [step, setStep] = useState<Step>("entry");
   const [confirmedAmount, setConfirmedAmount] = useState(0);
 
@@ -49,6 +50,7 @@ export function GoalContributeSheet({ goal, onClose }: GoalContributeSheetProps)
     contribute(goal.id, amount);
     setConfirmedAmount(amount);
     setStep("success");
+    clearDraft();
   };
 
   return (
@@ -72,7 +74,7 @@ export function GoalContributeSheet({ goal, onClose }: GoalContributeSheetProps)
           <span className="text-[15px] font-semibold text-ink">{t("goals.contributeTitle", { name: goal.name })}</span>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
             aria-label={t("common.close")}
           >
             <X size={20} />

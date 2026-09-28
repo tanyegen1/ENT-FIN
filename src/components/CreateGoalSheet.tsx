@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { Keypad } from "./Keypad";
 import { useLocale } from "../context/LocaleContext";
 import { useGoals } from "../context/GoalsContext";
+import { useDraftAmount } from "../hooks/useDraftAmount";
 
 const SHEET_SPRING = { type: "spring", stiffness: 420, damping: 38 } as const;
 
@@ -16,11 +17,14 @@ interface CreateGoalSheetProps {
 export function CreateGoalSheet({ onClose, onCreated }: CreateGoalSheetProps) {
   const { t } = useLocale();
   const { createGoal } = useGoals();
-  const [name, setName] = useState("");
-  const [raw, setRaw] = useState("0");
+  const [name, setName, clearNameDraft] = useDraftAmount("newgoal.name", "");
+  const [raw, setRaw, clearTargetDraft] = useDraftAmount("newgoal.target");
+  const [attempted, setAttempted] = useState(false);
 
   const target = Number(raw) || 0;
-  const canCreate = name.trim().length > 0 && target > 0;
+  const nameValid = name.trim().length > 0;
+  const targetValid = target > 0;
+  const canCreate = nameValid && targetValid;
 
   const handleDigit = (d: string) => {
     setRaw((prev) => {
@@ -37,9 +41,14 @@ export function CreateGoalSheet({ onClose, onCreated }: CreateGoalSheetProps) {
   const handleBackspace = () => setRaw((prev) => (prev.length <= 1 ? "0" : prev.slice(0, -1)));
 
   const handleCreate = () => {
-    if (!canCreate) return;
+    if (!canCreate) {
+      setAttempted(true);
+      return;
+    }
     const id = createGoal(name.trim(), target);
     onCreated?.(id);
+    clearNameDraft();
+    clearTargetDraft();
     onClose();
   };
 
@@ -64,7 +73,7 @@ export function CreateGoalSheet({ onClose, onCreated }: CreateGoalSheetProps) {
           <span className="text-[15px] font-semibold text-ink">{t("goals.newTitle")}</span>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
             aria-label={t("common.close")}
           >
             <X size={20} />
@@ -79,24 +88,31 @@ export function CreateGoalSheet({ onClose, onCreated }: CreateGoalSheetProps) {
               onChange={(e) => setName(e.target.value)}
               placeholder={t("goals.namePlaceholder")}
               maxLength={60}
-              className="w-full rounded-xl border border-border bg-surface-2 px-3.5 py-3 text-[15px] text-ink placeholder:text-ink-faint focus:border-brand focus:outline-none"
+              aria-invalid={attempted && !nameValid}
+              className={clsx(
+                "w-full rounded-xl border bg-surface-2 px-3.5 py-3 text-[15px] text-ink placeholder:text-ink-faint focus:outline-none",
+                attempted && !nameValid ? "border-down focus:border-down" : "border-border focus:border-brand",
+              )}
             />
+            {attempted && !nameValid && <p className="mt-1.5 text-[12px] text-down">{t("goals.nameRequired")}</p>}
           </div>
           <div>
             <div className="mb-1 text-[13px] text-ink-faint">{t("goals.targetLabel")}</div>
-            <div className="text-4xl font-semibold tabular-nums text-ink">${raw}</div>
+            <div className={clsx("text-4xl font-semibold tabular-nums", attempted && !targetValid ? "text-down" : "text-ink")}>
+              ${raw}
+            </div>
+            {attempted && !targetValid && <p className="mt-1 text-[12px] text-down">{t("goals.targetRequired")}</p>}
           </div>
           <Keypad onDigit={handleDigit} onDecimal={handleDecimal} onBackspace={handleBackspace} />
           <motion.button
-            disabled={!canCreate}
             onClick={handleCreate}
-            whileTap={canCreate ? { scale: 0.98 } : undefined}
+            whileTap={{ scale: 0.98 }}
             transition={{ duration: 0.12 }}
             className={clsx(
               "w-full rounded-full py-3.5 text-[15px] font-semibold transition-all cursor-pointer",
               canCreate
                 ? "brand-gradient brand-glow text-white hover:brightness-110"
-                : "bg-surface-3 text-ink-faint cursor-not-allowed",
+                : "bg-surface-3 text-ink-faint",
             )}
           >
             {t("goals.create")}

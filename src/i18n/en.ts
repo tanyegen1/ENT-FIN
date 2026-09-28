@@ -17,6 +17,10 @@ const en = {
     reservedExplanationZero:
       "Nothing is currently reserved — trades and transfers settle instantly in this practice account, so your full balance is available to use.",
     fixToAmount: "Change amount to {{amount}}",
+    hide: "Hide",
+    reveal: "Reveal",
+    hidden: "Hidden",
+    now: "now",
   },
   glossary: {
     marketCap: "The total value of all outstanding shares — a quick way to gauge how big it is.",
@@ -134,7 +138,7 @@ const en = {
   home: {
     totalBalance: "Total balance",
     invested: "Invested",
-    cashAvailable: "Cash available",
+    cashAvailable: "Buying power",
     gainLoss: "Investment gain/loss",
     gainLossHint: "Since you invested — separate from cash added or withdrawn.",
     addMoney: "Add money",
@@ -320,7 +324,6 @@ const en = {
     cash: "Cash",
     settingsTransfers: "Transfers & banking",
     settingsNotifications: "Notifications",
-    settingsSecurity: "Security",
     settingsHelp: "Help",
     settingsLanguageCurrency: "Language & currency",
     settingsTaxCenter: "Tax center & documents",
@@ -405,6 +408,10 @@ const en = {
     appearanceLabel: "Appearance",
     dark: "Dark",
     light: "Light",
+    textSizeLabel: "Text size",
+    textSizeDefault: "Default",
+    textSizeLarge: "Large",
+    textSizeXLarge: "Extra large",
   },
   taxCenter: {
     title: "Tax center",
@@ -493,6 +500,7 @@ const en = {
     directionBelow: "Below",
     targetLabel: "Alert me when price goes",
     create: "Set alert",
+    invalidTarget: "Enter a target price greater than $0.",
     activeHeading: "Active alerts",
     cancel: "Cancel",
     liveNote:
@@ -519,7 +527,7 @@ const en = {
     moneyContributed: "Money contributed",
     moneyWithdrawn: "Money withdrawn",
     currentInvestedValue: "Current invested value",
-    availableCash: "Available cash",
+    availableCash: "Buying power",
     investmentGainLoss: "Investment gain/loss",
     dividendsReceived: "Dividends received",
     dividendsNote: "This practice account doesn't simulate dividend payments, so this is genuinely $0.00 — not a placeholder.",
@@ -630,6 +638,93 @@ const en = {
       "Thanks for reaching out about \"{{refLabel}}\". That's a sample document for this practice account, so there's nothing filed or owed — happy to explain anything about what it shows.",
     scriptedFollowUp:
       "Got it, thanks for the extra detail. For this prototype I'm a scripted assistant, but a real support agent would pick this up from here.",
+  },
+  trust: {
+    title: "Trust & security",
+    subtitle: "Straight answers about how this practice app works, and what a real brokerage would owe you here.",
+    demoBanner:
+      "Arvo is a practice trading app — there's no real money, brokerage account, or regulatory protection behind it. Each answer below explains what the question means and how a real provider would answer it, using clearly marked placeholders where a real provider's specific arrangements would go.",
+    placeholderTag: "Placeholder",
+
+    qProviderHeading: "Who provides the investment service?",
+    qProviderAnswer:
+      "In this prototype, Arvo itself simulates the brokerage experience — no licensed broker-dealer is involved, and nothing you do here reaches a real market.",
+    qProviderPlaceholder:
+      "Broker-dealer name, registration number, and regulator to be confirmed before this app could handle real money.",
+
+    qCustodyHeading: "Where are cash and investments held?",
+    qCustodyAnswer:
+      "Nothing here is real. Your cash and holdings are just numbers stored on your device (and, if you're signed in, in this project's database) — nothing is deposited anywhere.",
+    qCustodyPlaceholder:
+      "Custodian bank or clearing firm name, and how customer funds would be kept separate from company funds, to be confirmed.",
+
+    qFeesHeading: "What fees apply?",
+    qFeesIntro:
+      "This practice account charges nothing — every line below is $0.00 by design, so you can see what a real fee schedule would need to cover.",
+    feeTrading: "Trading commissions",
+    feeTradingValue: "$0.00 (simulated)",
+    feeRecurring: "Recurring investments",
+    feeRecurringValue: "$0.00 (simulated)",
+    feeTransfer: "Deposits & withdrawals",
+    feeTransferValue: "$0.00 (simulated)",
+    feeCurrency: "Currency conversion",
+    feeCurrencyValue: "Not applicable — trades execute in USD",
+    feeAccount: "Account maintenance",
+    feeAccountValue: "$0.00 (simulated)",
+    feesPlaceholder:
+      "A real brokerage's fee schedule (regulatory fees, wire transfers, paper statements, inactivity, etc.) to be confirmed and disclosed before launch.",
+
+    qProtectionHeading: "What protection applies, and what does it cover?",
+    qProtectionAnswer:
+      "Since there's no real money, nothing here is actually insured or protected. For illustration: many real brokerages carry coverage that protects customer securities and cash up to a set limit per account if the brokerage itself fails — it does not protect against ordinary investment losses from the market moving.",
+    qProtectionPlaceholder:
+      "Real protection scheme, coverage limits, and insurer to be confirmed and disclosed before launch.",
+
+    qControlsHeading: "How can I secure, export, or close my account?",
+    qControlsAnswer: "Use the sections below — update how you sign in, download your practice data, review or sign out devices, or close your account entirely.",
+
+    sessionsHeading: "Devices & sessions",
+    sessionsNote: "For this prototype, sessions are simulated on your device rather than tracked by a real server.",
+    sessionCurrent: "This device",
+    sessionActiveBadge: "Active",
+    sessionSignOut: "Sign out",
+    sessionSignOutAll: "Sign out of all other sessions",
+    sessionSignOutAllConfirmTitle: "Sign out of all other sessions?",
+    sessionSignOutAllConfirmDesc: "This simulates ending every other session shown below. This device stays signed in.",
+    sessionSignOutAllConfirmBtn: "Sign out others",
+    sessionsEmpty: "No other sessions right now.",
+    lastActive: "Active {{when}}",
+
+    securityHeading: "Sign-in & password",
+    changePassword: "Change password",
+    changePasswordTitle: "Change password",
+    newPasswordLabel: "New password",
+    changePasswordCta: "Update password",
+    changePasswordSuccess: "Your password has been updated.",
+    changePasswordTooShort: "Password must be at least 6 characters.",
+    changePasswordUnavailableGuest: "You're practicing as a guest — sign in with email to set a password.",
+    changePasswordUnavailableCloud: "Cloud sign-in isn't configured for this session.",
+
+    privacyHeading: "Privacy",
+    hideBalancesLabel: "Hide balances",
+    hideBalancesNote: "Masks dollar figures on Home and Account with •••• until you tap to reveal them — handy over someone's shoulder.",
+
+    notificationsRow: "Notification settings",
+    notificationsRowNote: "Choose which events notify you, and how.",
+
+    dataHeading: "Your data",
+    exportData: "Export my data",
+    exportDataNote: "Downloads everything this practice account has stored — holdings, orders, transfers, goals, lists, and more — as a JSON file.",
+    exportDataDone: "Downloaded.",
+    closeAccount: "Close account",
+    closeAccountNote: "Permanently clears your practice portfolio and every feature's data from this device, then signs you out.",
+    closeAccountConfirmTitle: "Close your account?",
+    closeAccountConfirmDesc:
+      "This clears your portfolio, goals, lists, recurring plans, support history, and notifications from this device, and signs you out. This can't be undone.",
+    closeAccountConfirmTypeLabel: "Type CLOSE to confirm",
+    closeAccountConfirmPlaceholder: "CLOSE",
+    closeAccountConfirmBtn: "Close account",
+    closeAccountWord: "CLOSE",
   },
 };
 

@@ -1,12 +1,14 @@
 import { useMemo, useState, type ComponentType } from "react";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowDownToLine, ArrowUpFromLine, Bell, Globe, TrendingUp } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Bell, Eye, EyeOff, Globe, TrendingUp } from "lucide-react";
 import { usePortfolio } from "../context/PortfolioContext";
 import { useAuth } from "../context/AuthContext";
 import { useLocale } from "../context/LocaleContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { useNotifications } from "../context/NotificationsContext";
+import { usePreferences } from "../context/PreferencesContext";
+import { MaskedAmount } from "../components/MaskedAmount";
 import { getStock } from "../data/stocks";
 import { getPortfolioHistory } from "../data/portfolioHistory";
 import { useLiveQuotes } from "../data/liveQuotes";
@@ -62,6 +64,7 @@ export function Home() {
   const { t } = useLocale();
   const { displayCurrency, formatDisplay } = useCurrency();
   const { unreadCount } = useNotifications();
+  const { hideBalances, toggleHideBalances } = usePreferences();
   const [range, setRange] = useState<Range>("1D");
   const [scrub, setScrub] = useState<PricePoint | null>(null);
   const [cashMode, setCashMode] = useState<"deposit" | "withdraw" | null>(null);
@@ -107,6 +110,7 @@ export function Home() {
         </div>
         <button
           onClick={() => setShowLocaleSheet(true)}
+          aria-label={t("account.settingsLanguageCurrency")}
           className="ml-auto flex items-center gap-1.5 rounded-full bg-surface-2 px-2.5 py-1.5 text-[11px] font-semibold text-ink-dim hover:bg-surface-3 cursor-pointer lg:hidden"
         >
           <Globe size={13} />
@@ -115,14 +119,15 @@ export function Home() {
         <Link
           to="/notifications"
           aria-label={t("notifications.title")}
-          className="relative flex h-9 w-9 items-center justify-center rounded-full bg-surface-2 text-ink-dim hover:bg-surface-3 lg:hidden"
+          className="relative flex h-10 w-10 items-center justify-center rounded-full bg-surface-2 text-ink-dim hover:bg-surface-3 lg:hidden"
         >
           <Bell size={16} />
           {unreadCount > 0 && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-brand" />}
         </Link>
         <Link
           to="/account"
-          className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full brand-gradient text-sm font-semibold text-white lg:hidden"
+          aria-label={t("nav.account")}
+          className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full brand-gradient text-sm font-semibold text-white lg:hidden"
         >
           {(() => {
             const meta = (user?.user_metadata ?? {}) as Record<string, string | undefined>;
@@ -142,9 +147,19 @@ export function Home() {
           className="pointer-events-none absolute -top-10 left-1/2 h-48 w-[120%] -translate-x-1/2 rounded-full blur-3xl"
           style={{ backgroundColor: "var(--color-brand)", opacity: 0.08 }}
         />
-        <span className="text-sm text-ink-faint">{t("home.totalBalance")}</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm text-ink-faint">{t("home.totalBalance")}</span>
+          <button
+            onClick={toggleHideBalances}
+            aria-label={hideBalances ? t("common.reveal") : t("common.hide")}
+            aria-pressed={hideBalances}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-ink-faint hover:bg-surface-2 hover:text-ink-dim cursor-pointer"
+          >
+            {hideBalances ? <EyeOff size={15} /> : <Eye size={15} />}
+          </button>
+        </div>
         <div className="mt-1 text-4xl font-semibold tabular-nums text-ink lg:text-5xl">
-          {formatDisplay(displayValue)}
+          <MaskedAmount>{formatDisplay(displayValue)}</MaskedAmount>
         </div>
         <div className="mt-1.5 flex items-center gap-2">
           <PriceChange amount={diff} percent={diffPercent} size="md" formatAmount={formatDisplay} />
@@ -155,13 +170,13 @@ export function Home() {
           <div className="rounded-xl bg-surface-2 px-3.5 py-3">
             <div className="text-[12px] text-ink-faint">{t("home.invested")}</div>
             <div className="mt-0.5 text-[15px] font-semibold tabular-nums text-ink">
-              {formatDisplay(equityValue)}
+              <MaskedAmount>{formatDisplay(equityValue)}</MaskedAmount>
             </div>
           </div>
           <div className="rounded-xl bg-surface-2 px-3.5 py-3">
             <div className="text-[12px] text-ink-faint">{t("home.cashAvailable")}</div>
             <div className="mt-0.5 text-[15px] font-semibold tabular-nums text-ink">
-              {formatDisplay(cash)}
+              <MaskedAmount>{formatDisplay(cash)}</MaskedAmount>
             </div>
           </div>
         </div>

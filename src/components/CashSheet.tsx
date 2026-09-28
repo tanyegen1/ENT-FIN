@@ -10,6 +10,7 @@ import { usePortfolio } from "../context/PortfolioContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { useLocale } from "../context/LocaleContext";
 import { useCountUp } from "../hooks/useCountUp";
+import { useDraftAmount } from "../hooks/useDraftAmount";
 import { formatCurrency } from "../lib/format";
 
 type Mode = "deposit" | "withdraw";
@@ -27,7 +28,7 @@ export function CashSheet({ mode, onClose }: CashSheetProps) {
   const { cash, reservedCash, spendableCash, deposit, withdraw } = usePortfolio();
   const { displayCurrency } = useCurrency();
   const { t } = useLocale();
-  const [raw, setRaw] = useState("0");
+  const [raw, setRaw, clearDraft] = useDraftAmount(`cash.${mode}`);
   const [step, setStep] = useState<Step>("entry");
   const [confirmedAmount, setConfirmedAmount] = useState(0);
 
@@ -62,11 +63,13 @@ export function CashSheet({ mode, onClose }: CashSheetProps) {
       deposit(amount);
       setConfirmedAmount(amount);
       setStep("success");
+      clearDraft();
     } else {
       const ok = withdraw(amount);
       if (ok) {
         setConfirmedAmount(amount);
         setStep("success");
+        clearDraft();
       }
     }
   };
@@ -102,7 +105,7 @@ export function CashSheet({ mode, onClose }: CashSheetProps) {
           </span>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
             aria-label={t("common.close")}
           >
             <X size={20} />

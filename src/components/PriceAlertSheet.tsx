@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { Keypad } from "./Keypad";
 import { useLocale } from "../context/LocaleContext";
 import { usePriceAlerts } from "../context/PriceAlertsContext";
+import { useDraftAmount } from "../hooks/useDraftAmount";
 import { formatCurrencyPrecise } from "../lib/format";
 import type { Stock } from "../types";
 
@@ -19,7 +20,8 @@ export function PriceAlertSheet({ stock, onClose }: PriceAlertSheetProps) {
   const { t } = useLocale();
   const { alertsFor, createAlert, deleteAlert } = usePriceAlerts();
   const [direction, setDirection] = useState<"above" | "below">("above");
-  const [raw, setRaw] = useState(stock.price.toFixed(2));
+  const [raw, setRaw] = useDraftAmount(`alert.${stock.symbol}`, stock.price.toFixed(2));
+  const [attempted, setAttempted] = useState(false);
 
   const target = Number(raw) || 0;
   const canCreate = target > 0;
@@ -40,9 +42,13 @@ export function PriceAlertSheet({ stock, onClose }: PriceAlertSheetProps) {
   const handleBackspace = () => setRaw((prev) => (prev.length <= 1 ? "0" : prev.slice(0, -1)));
 
   const handleCreate = () => {
-    if (!canCreate) return;
+    if (!canCreate) {
+      setAttempted(true);
+      return;
+    }
     createAlert(stock.symbol, direction, target);
     setRaw(stock.price.toFixed(2));
+    setAttempted(false);
   };
 
   return (
@@ -66,7 +72,7 @@ export function PriceAlertSheet({ stock, onClose }: PriceAlertSheetProps) {
           <span className="text-[15px] font-semibold text-ink">{t("priceAlerts.newTitle")}</span>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
             aria-label={t("common.close")}
           >
             <X size={20} />
@@ -97,19 +103,28 @@ export function PriceAlertSheet({ stock, onClose }: PriceAlertSheetProps) {
             </div>
           </div>
 
-          <div className="text-center text-4xl font-semibold tabular-nums text-ink">${raw}</div>
+          <div
+            className={clsx(
+              "text-center text-4xl font-semibold tabular-nums",
+              attempted && !canCreate ? "text-down" : "text-ink",
+            )}
+          >
+            ${raw}
+          </div>
+          {attempted && !canCreate && (
+            <p className="-mt-2 text-center text-[12px] text-down">{t("priceAlerts.invalidTarget")}</p>
+          )}
           <Keypad onDigit={handleDigit} onDecimal={handleDecimal} onBackspace={handleBackspace} />
 
           <motion.button
-            disabled={!canCreate}
             onClick={handleCreate}
-            whileTap={canCreate ? { scale: 0.98 } : undefined}
+            whileTap={{ scale: 0.98 }}
             transition={{ duration: 0.12 }}
             className={clsx(
               "w-full rounded-full py-3.5 text-[15px] font-semibold transition-all cursor-pointer",
               canCreate
                 ? "brand-gradient brand-glow text-white hover:brightness-110"
-                : "bg-surface-3 text-ink-faint cursor-not-allowed",
+                : "bg-surface-3 text-ink-faint",
             )}
           >
             {t("priceAlerts.create")}

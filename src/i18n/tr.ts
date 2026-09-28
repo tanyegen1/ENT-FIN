@@ -19,6 +19,10 @@ const tr: Messages = {
     reservedExplanationZero:
       "Şu anda hiçbir şey ayrılmış değil — bu deneme hesabında işlemler ve transferler anında gerçekleşir, bu yüzden tüm bakiyen kullanıma hazır.",
     fixToAmount: "Tutarı {{amount}} olarak değiştir",
+    hide: "Gizle",
+    reveal: "Göster",
+    hidden: "Gizli",
+    now: "şimdi",
   },
   glossary: {
     marketCap: "Tüm hisselerin toplam değeri — ne kadar büyük olduğunu hızlıca anlamanın bir yolu.",
@@ -136,7 +140,7 @@ const tr: Messages = {
   home: {
     totalBalance: "Toplam bakiye",
     invested: "Yatırılan",
-    cashAvailable: "Kullanılabilir nakit",
+    cashAvailable: "Kullanılabilir bakiye",
     gainLoss: "Yatırım kâr/zararı",
     gainLossHint: "Yatırım yaptığından bu yana — eklenen veya çekilen paradan bağımsız.",
     addMoney: "Para ekle",
@@ -322,7 +326,6 @@ const tr: Messages = {
     cash: "Nakit",
     settingsTransfers: "Transferler & bankacılık",
     settingsNotifications: "Bildirimler",
-    settingsSecurity: "Güvenlik",
     settingsHelp: "Yardım",
     settingsLanguageCurrency: "Dil & para birimi",
     settingsTaxCenter: "Vergi merkezi & belgeler",
@@ -407,6 +410,10 @@ const tr: Messages = {
     appearanceLabel: "Görünüm",
     dark: "Koyu",
     light: "Açık",
+    textSizeLabel: "Yazı boyutu",
+    textSizeDefault: "Varsayılan",
+    textSizeLarge: "Büyük",
+    textSizeXLarge: "Çok büyük",
   },
   taxCenter: {
     title: "Vergi merkezi",
@@ -495,6 +502,7 @@ const tr: Messages = {
     directionBelow: "Altına",
     targetLabel: "Fiyat şuna ulaştığında uyar",
     create: "Uyarıyı kur",
+    invalidTarget: "0 $'dan büyük bir hedef fiyat gir.",
     activeHeading: "Aktif uyarılar",
     cancel: "İptal et",
     liveNote:
@@ -632,6 +640,92 @@ const tr: Messages = {
       "\"{{refLabel}}\" hakkında bize ulaştığın için teşekkürler. Bu, deneme hesabın için örnek bir belge, yani beyan edilen veya borçlu olunan hiçbir şey yok — gösterdikleri hakkında herhangi bir şeyi açıklamaktan memnuniyet duyarım.",
     scriptedFollowUp:
       "Anladım, ek detay için teşekkürler. Bu prototip için ben senaryolu bir asistanım, ama gerçek bir destek temsilcisi buradan devralırdı.",
+  },
+  trust: {
+    title: "Güven ve güvenlik",
+    subtitle: "Bu deneme uygulamasının nasıl çalıştığına dair net cevaplar — ve gerçek bir aracı kurumun sana burada neler borçlu olacağı.",
+    demoBanner:
+      "Arvo bir deneme yatırım uygulamasıdır — arkasında gerçek para, aracı kurum hesabı veya düzenleyici koruma yoktur. Aşağıdaki her cevap sorunun ne anlama geldiğini ve gerçek bir sağlayıcının bunu nasıl yanıtlayacağını, gerçek sağlayıcının kendine özgü düzenlemelerinin geleceği yerleri açıkça işaretlenmiş yer tutucularla göstererek açıklar.",
+    placeholderTag: "Yer tutucu",
+
+    qProviderHeading: "Yatırım hizmetini kim sağlıyor?",
+    qProviderAnswer:
+      "Bu prototipte, aracı kurum deneyimini Arvo'nun kendisi simüle eder — lisanslı bir aracı kurum söz konusu değildir ve burada yaptığın hiçbir şey gerçek bir piyasaya ulaşmaz.",
+    qProviderPlaceholder:
+      "Bu uygulamanın gerçek parayla çalışabilmesi için aracı kurum adı, kayıt numarası ve düzenleyici kurum onaylanmalıdır.",
+
+    qCustodyHeading: "Nakit ve yatırımlar nerede tutuluyor?",
+    qCustodyAnswer:
+      "Burada hiçbir şey gerçek değil. Nakit ve varlıkların cihazında (ve giriş yaptıysan bu projenin veritabanında) saklanan sayılardan ibaret — hiçbir yere yatırılmıyor.",
+    qCustodyPlaceholder:
+      "Saklayıcı banka veya takas kurumu adı ve müşteri fonlarının şirket fonlarından nasıl ayrı tutulacağı onaylanmalıdır.",
+
+    qFeesHeading: "Hangi ücretler uygulanır?",
+    qFeesIntro:
+      "Bu deneme hesabı hiçbir şey için ücret almaz — aşağıdaki her satır tasarım gereği 0,00 $'dır, böylece gerçek bir ücret tarifesinin neyi kapsaması gerektiğini görebilirsin.",
+    feeTrading: "İşlem komisyonları",
+    feeTradingValue: "0,00 $ (simüle edilmiş)",
+    feeRecurring: "Düzenli yatırımlar",
+    feeRecurringValue: "0,00 $ (simüle edilmiş)",
+    feeTransfer: "Para yatırma ve çekme",
+    feeTransferValue: "0,00 $ (simüle edilmiş)",
+    feeCurrency: "Döviz çevirimi",
+    feeCurrencyValue: "Geçerli değil — işlemler USD cinsinden gerçekleşir",
+    feeAccount: "Hesap bakım ücreti",
+    feeAccountValue: "0,00 $ (simüle edilmiş)",
+    feesPlaceholder:
+      "Gerçek bir aracı kurumun ücret tarifesi (düzenleyici ücretler, havale, kağıt hesap özeti, hareketsizlik vb.) yayına girmeden önce onaylanmalı ve açıklanmalıdır.",
+
+    qProtectionHeading: "Hangi koruma uygulanır ve neyi kapsar?",
+    qProtectionAnswer:
+      "Gerçek para olmadığı için burada hiçbir şey aslında sigortalı veya korumalı değildir. Örnek olarak: pek çok gerçek aracı kurum, aracı kurumun kendisi iflas ederse müşteri menkul kıymetlerini ve nakdini hesap başına belirli bir limite kadar koruyan bir kapsam taşır — bu, piyasanın olağan hareketinden kaynaklanan yatırım kayıplarını korumaz.",
+    qProtectionPlaceholder: "Gerçek koruma planı, kapsam limitleri ve sigortacı yayına girmeden önce onaylanmalı ve açıklanmalıdır.",
+
+    qControlsHeading: "Hesabımı nasıl güvenli hale getirir, dışa aktarır veya kapatırım?",
+    qControlsAnswer: "Aşağıdaki bölümleri kullan — nasıl giriş yaptığını güncelle, deneme verilerini indir, cihazları gözden geçir veya oturumlarını kapat, ya da hesabını tamamen kapat.",
+
+    sessionsHeading: "Cihazlar ve oturumlar",
+    sessionsNote: "Bu prototip için oturumlar gerçek bir sunucu tarafından değil, cihazında simüle edilir.",
+    sessionCurrent: "Bu cihaz",
+    sessionActiveBadge: "Aktif",
+    sessionSignOut: "Oturumu kapat",
+    sessionSignOutAll: "Diğer tüm oturumları kapat",
+    sessionSignOutAllConfirmTitle: "Diğer tüm oturumlar kapatılsın mı?",
+    sessionSignOutAllConfirmDesc: "Bu, aşağıda gösterilen diğer her oturumun sona ermesini simüle eder. Bu cihaz oturum açık kalır.",
+    sessionSignOutAllConfirmBtn: "Diğerlerini kapat",
+    sessionsEmpty: "Şu anda başka oturum yok.",
+    lastActive: "{{when}} aktifti",
+
+    securityHeading: "Giriş ve şifre",
+    changePassword: "Şifreyi değiştir",
+    changePasswordTitle: "Şifreyi değiştir",
+    newPasswordLabel: "Yeni şifre",
+    changePasswordCta: "Şifreyi güncelle",
+    changePasswordSuccess: "Şifren güncellendi.",
+    changePasswordTooShort: "Şifre en az 6 karakter olmalı.",
+    changePasswordUnavailableGuest: "Misafir olarak pratik yapıyorsun — şifre belirlemek için e-postayla giriş yap.",
+    changePasswordUnavailableCloud: "Bu oturum için bulut girişi yapılandırılmamış.",
+
+    privacyHeading: "Gizlilik",
+    hideBalancesLabel: "Bakiyeleri gizle",
+    hideBalancesNote: "Ana Sayfa ve Hesap'taki tutarları, sen göstermeyi seçene kadar •••• ile maskeler — biri omzunun üzerinden bakarken kullanışlıdır.",
+
+    notificationsRow: "Bildirim ayarları",
+    notificationsRowNote: "Hangi olayların seni ve nasıl bilgilendireceğini seç.",
+
+    dataHeading: "Verilerin",
+    exportData: "Verilerimi dışa aktar",
+    exportDataNote: "Bu deneme hesabının sakladığı her şeyi — hisseler, emirler, transferler, hedefler, listeler ve daha fazlası — bir JSON dosyası olarak indirir.",
+    exportDataDone: "İndirildi.",
+    closeAccount: "Hesabı kapat",
+    closeAccountNote: "Deneme portföyünü ve her özelliğin verisini bu cihazdan kalıcı olarak temizler, ardından oturumunu kapatır.",
+    closeAccountConfirmTitle: "Hesabın kapatılsın mı?",
+    closeAccountConfirmDesc:
+      "Bu, portföyünü, hedeflerini, listelerini, düzenli yatırım planlarını, destek geçmişini ve bildirimlerini bu cihazdan temizler ve oturumunu kapatır. Bu geri alınamaz.",
+    closeAccountConfirmTypeLabel: "Onaylamak için KAPAT yaz",
+    closeAccountConfirmPlaceholder: "KAPAT",
+    closeAccountConfirmBtn: "Hesabı kapat",
+    closeAccountWord: "KAPAT",
   },
 };
 

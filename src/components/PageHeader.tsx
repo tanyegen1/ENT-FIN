@@ -18,7 +18,7 @@ export function PageHeader({ title, back, right }: PageHeaderProps) {
       {back && (
         <motion.button
           onClick={() => navigate(-1)}
-          className="-ml-1 flex h-8 w-8 items-center justify-center rounded-full text-ink hover:bg-surface-2 cursor-pointer"
+          className="-ml-1 flex h-10 w-10 items-center justify-center rounded-full text-ink hover:bg-surface-2 cursor-pointer"
           aria-label={t("common.back")}
           whileTap={{ scale: 0.85 }}
           transition={{ duration: 0.12 }}

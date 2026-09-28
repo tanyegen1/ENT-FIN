@@ -56,7 +56,7 @@ export function NavShell() {
             </div>
             <button
               onClick={() => navigate("/notifications")}
-              className="relative flex h-8 w-8 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
+              className="relative flex h-10 w-10 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
               aria-label={t("notifications.title")}
             >
               <Bell size={18} />

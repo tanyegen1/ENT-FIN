@@ -121,6 +121,14 @@ export interface NotificationItem {
   linkTo: string;
 }
 
+export interface DeviceSession {
+  id: string;
+  device: string;
+  location: string;
+  lastActiveAt: number;
+  current: boolean;
+}
+
 export interface PriceAlert {
   id: string;
   symbol: string;

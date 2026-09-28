@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { Keypad } from "./Keypad";
 import { useLocale } from "../context/LocaleContext";
 import { useRecurring, nextRunDate } from "../context/RecurringContext";
+import { useDraftAmount } from "../hooks/useDraftAmount";
 import type { RecurringPlan } from "../types";
 
 const SHEET_SPRING = { type: "spring", stiffness: 420, damping: 38 } as const;
@@ -20,8 +21,12 @@ interface RecurringSheetProps {
 export function RecurringSheet({ symbol, existingPlan, onClose, onSaved }: RecurringSheetProps) {
   const { t, locale } = useLocale();
   const { createPlan, editPlan } = useRecurring();
-  const [raw, setRaw] = useState(existingPlan ? String(existingPlan.amount) : "0");
+  const [raw, setRaw, clearDraft] = useDraftAmount(
+    existingPlan ? `recurring.edit.${existingPlan.id}` : `recurring.new.${symbol}`,
+    existingPlan ? String(existingPlan.amount) : "0",
+  );
   const [dayOfMonth, setDayOfMonth] = useState(existingPlan?.dayOfMonth ?? 1);
+  const [attempted, setAttempted] = useState(false);
 
   const amount = Number(raw) || 0;
   const canSave = amount > 0;
@@ -41,7 +46,10 @@ export function RecurringSheet({ symbol, existingPlan, onClose, onSaved }: Recur
   const handleBackspace = () => setRaw((prev) => (prev.length <= 1 ? "0" : prev.slice(0, -1)));
 
   const handleSave = () => {
-    if (!canSave) return;
+    if (!canSave) {
+      setAttempted(true);
+      return;
+    }
     if (existingPlan) {
       editPlan(existingPlan.id, amount, dayOfMonth);
       onSaved?.(existingPlan.id);
@@ -49,6 +57,7 @@ export function RecurringSheet({ symbol, existingPlan, onClose, onSaved }: Recur
       const id = createPlan(symbol, amount, dayOfMonth);
       onSaved?.(id);
     }
+    clearDraft();
     onClose();
   };
 
@@ -80,7 +89,7 @@ export function RecurringSheet({ symbol, existingPlan, onClose, onSaved }: Recur
           </span>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
             aria-label={t("common.close")}
           >
             <X size={20} />
@@ -97,7 +106,15 @@ export function RecurringSheet({ symbol, existingPlan, onClose, onSaved }: Recur
 
           <div>
             <div className="mb-1 text-[13px] text-ink-faint">{t("recurring.amountLabel")}</div>
-            <div className="text-4xl font-semibold tabular-nums text-ink">${raw}</div>
+            <div
+              className={clsx(
+                "text-4xl font-semibold tabular-nums",
+                attempted && !canSave ? "text-down" : "text-ink",
+              )}
+            >
+              ${raw}
+            </div>
+            {attempted && !canSave && <p className="mt-1 text-[12px] text-down">{t("recurring.amountTooLow")}</p>}
           </div>
           <Keypad onDigit={handleDigit} onDecimal={handleDecimal} onBackspace={handleBackspace} />
 
@@ -140,15 +157,14 @@ export function RecurringSheet({ symbol, existingPlan, onClose, onSaved }: Recur
           </p>
 
           <motion.button
-            disabled={!canSave}
             onClick={handleSave}
-            whileTap={canSave ? { scale: 0.98 } : undefined}
+            whileTap={{ scale: 0.98 }}
             transition={{ duration: 0.12 }}
             className={clsx(
               "w-full rounded-full py-3.5 text-[15px] font-semibold transition-all cursor-pointer",
               canSave
                 ? "brand-gradient brand-glow text-white hover:brightness-110"
-                : "bg-surface-3 text-ink-faint cursor-not-allowed",
+                : "bg-surface-3 text-ink-faint",
             )}
           >
             {existingPlan ? t("recurring.save") : t("recurring.create")}

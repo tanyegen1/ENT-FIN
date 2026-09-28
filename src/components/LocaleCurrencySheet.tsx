@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import { useLocale, type Locale } from "../context/LocaleContext";
 import { useCurrency, type DisplayCurrency } from "../context/CurrencyContext";
 import { useTheme, type Theme } from "../context/ThemeContext";
+import { usePreferences, type TextSize } from "../context/PreferencesContext";
 
 const SHEET_SPRING = { type: "spring", stiffness: 420, damping: 38 } as const;
 
@@ -14,6 +15,7 @@ export function LocaleCurrencySheet({ onClose }: LocaleCurrencySheetProps) {
   const { locale, setLocale, t } = useLocale();
   const { displayCurrency, setDisplayCurrency } = useCurrency();
   const { theme, setTheme } = useTheme();
+  const { textSize, setTextSize } = usePreferences();
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center lg:items-center">
@@ -36,7 +38,7 @@ export function LocaleCurrencySheet({ onClose }: LocaleCurrencySheetProps) {
           <span className="text-[15px] font-semibold text-ink">{t("localeCurrency.title")}</span>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
             aria-label={t("common.close")}
           >
             <X size={20} />
@@ -112,6 +114,35 @@ export function LocaleCurrencySheet({ onClose }: LocaleCurrencySheetProps) {
                 )}
                 <span className={`relative z-10 ${theme === th ? "text-brand-light" : "text-ink-faint"}`}>
                   {th === "dark" ? t("localeCurrency.dark") : t("localeCurrency.light")}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-2 text-[13px] font-medium text-ink-faint">{t("localeCurrency.textSizeLabel")}</div>
+          <div className="relative flex rounded-full bg-surface-2 p-1">
+            {(["default", "large", "xlarge"] as TextSize[]).map((size) => (
+              <button
+                key={size}
+                type="button"
+                onClick={() => setTextSize(size)}
+                className="relative flex-1 rounded-full py-2.5 text-[13px] font-semibold cursor-pointer"
+              >
+                {textSize === size && (
+                  <motion.div
+                    layoutId="textsize-pill"
+                    className="absolute inset-0 rounded-full bg-brand-soft"
+                    transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                  />
+                )}
+                <span className={`relative z-10 ${textSize === size ? "text-brand-light" : "text-ink-faint"}`}>
+                  {size === "default"
+                    ? t("localeCurrency.textSizeDefault")
+                    : size === "large"
+                      ? t("localeCurrency.textSizeLarge")
+                      : t("localeCurrency.textSizeXLarge")}
                 </span>
               </button>
             ))}

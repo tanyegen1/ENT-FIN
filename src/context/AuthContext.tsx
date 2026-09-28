@@ -26,6 +26,7 @@ interface AuthContextValue {
   user: User | null;
   signUpWithEmail: (email: string, password: string) => Promise<AuthResult>;
   signInWithEmail: (email: string, password: string) => Promise<AuthResult>;
+  updatePassword: (password: string) => Promise<AuthResult>;
   signOut: () => Promise<void>;
   continueAsGuest: () => void;
   exitGuestMode: () => void;
@@ -120,6 +121,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return error ? { error: friendlyAuthError(error.message, t) } : {};
   }, [t]);
 
+  const updatePassword = useCallback(async (password: string): Promise<AuthResult> => {
+    if (!supabase) return { error: t("login.errorCloudUnavailable") };
+    const { error } = await supabase.auth.updateUser({ password });
+    return error ? { error: friendlyAuthError(error.message, t) } : {};
+  }, [t]);
+
   const signOut = useCallback(async () => {
     if (supabase) await supabase.auth.signOut();
     try {
@@ -154,11 +161,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       signUpWithEmail,
       signInWithEmail,
+      updatePassword,
       signOut,
       continueAsGuest,
       exitGuestMode,
     }),
-    [status, user, signUpWithEmail, signInWithEmail, signOut, continueAsGuest, exitGuestMode],
+    [status, user, signUpWithEmail, signInWithEmail, updatePassword, signOut, continueAsGuest, exitGuestMode],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

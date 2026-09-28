@@ -28,6 +28,7 @@ import { useCurrency } from "../context/CurrencyContext";
 import { ConfirmSheet } from "../components/ConfirmSheet";
 import { LocaleCurrencySheet } from "../components/LocaleCurrencySheet";
 import { GetHelpButton } from "../components/GetHelpButton";
+import { MaskedAmount } from "../components/MaskedAmount";
 import { formatCurrency, formatCurrencyPrecise, formatShares } from "../lib/format";
 import type { OrderRecord, TransferRecord } from "../types";
 
@@ -63,7 +64,7 @@ export function Account() {
     { icon: Target, label: t("goals.title"), to: "/goals" },
     { icon: Repeat, label: t("recurring.title"), to: "/recurring" },
     { icon: Bell, label: t("account.settingsNotifications"), to: "/notifications" },
-    { icon: ShieldCheck, label: t("account.settingsSecurity") },
+    { icon: ShieldCheck, label: t("trust.title"), to: "/trust" },
     { icon: HelpCircle, label: t("account.settingsHelp"), to: "/support" },
   ];
 
@@ -128,19 +129,19 @@ export function Account() {
         <div className="px-3 py-3.5 text-center">
           <div className="text-[12px] text-ink-faint">{t("account.totalValue")}</div>
           <div className="mt-0.5 text-[14px] font-semibold tabular-nums text-ink">
-            {formatDisplay(totalValue)}
+            <MaskedAmount>{formatDisplay(totalValue)}</MaskedAmount>
           </div>
         </div>
         <div className="px-3 py-3.5 text-center">
           <div className="text-[12px] text-ink-faint">{t("account.equity")}</div>
           <div className="mt-0.5 text-[14px] font-semibold tabular-nums text-ink">
-            {formatDisplay(equityValue)}
+            <MaskedAmount>{formatDisplay(equityValue)}</MaskedAmount>
           </div>
         </div>
         <div className="px-3 py-3.5 text-center">
           <div className="text-[12px] text-ink-faint">{t("account.cash")}</div>
           <div className="mt-0.5 text-[14px] font-semibold tabular-nums text-ink">
-            {formatDisplay(cash)}
+            <MaskedAmount>{formatDisplay(cash)}</MaskedAmount>
           </div>
         </div>
       </div>

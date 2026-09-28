@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import clsx from "clsx";
 import { useLocale } from "../context/LocaleContext";
 import { useLists } from "../context/ListsContext";
+import { useDraftAmount } from "../hooks/useDraftAmount";
 
 const SHEET_SPRING = { type: "spring", stiffness: 420, damping: 38 } as const;
 
@@ -15,14 +16,19 @@ interface CreateListSheetProps {
 export function CreateListSheet({ onClose, onCreated }: CreateListSheetProps) {
   const { t } = useLocale();
   const { createList } = useLists();
-  const [name, setName] = useState("");
+  const [name, setName, clearDraft] = useDraftAmount("newlist.name", "");
+  const [attempted, setAttempted] = useState(false);
 
   const canCreate = name.trim().length > 0;
 
   const handleCreate = () => {
-    if (!canCreate) return;
+    if (!canCreate) {
+      setAttempted(true);
+      return;
+    }
     const id = createList(name.trim());
     onCreated?.(id);
+    clearDraft();
     onClose();
   };
 
@@ -47,7 +53,7 @@ export function CreateListSheet({ onClose, onCreated }: CreateListSheetProps) {
           <span className="text-[15px] font-semibold text-ink">{t("lists.newListTitle")}</span>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
             aria-label={t("common.close")}
           >
             <X size={20} />
@@ -63,19 +69,23 @@ export function CreateListSheet({ onClose, onCreated }: CreateListSheetProps) {
               onKeyDown={(e) => e.key === "Enter" && handleCreate()}
               placeholder={t("lists.listNamePlaceholder")}
               maxLength={60}
-              className="w-full rounded-xl border border-border bg-surface-2 px-3.5 py-3 text-[15px] text-ink placeholder:text-ink-faint focus:border-brand focus:outline-none"
+              aria-invalid={attempted && !canCreate}
+              className={clsx(
+                "w-full rounded-xl border bg-surface-2 px-3.5 py-3 text-[15px] text-ink placeholder:text-ink-faint focus:outline-none",
+                attempted && !canCreate ? "border-down focus:border-down" : "border-border focus:border-brand",
+              )}
             />
+            {attempted && !canCreate && <p className="mt-1.5 text-[12px] text-down">{t("lists.nameRequired")}</p>}
           </div>
           <motion.button
-            disabled={!canCreate}
             onClick={handleCreate}
-            whileTap={canCreate ? { scale: 0.98 } : undefined}
+            whileTap={{ scale: 0.98 }}
             transition={{ duration: 0.12 }}
             className={clsx(
               "w-full rounded-full py-3.5 text-[15px] font-semibold transition-all cursor-pointer",
               canCreate
                 ? "brand-gradient brand-glow text-white hover:brightness-110"
-                : "bg-surface-3 text-ink-faint cursor-not-allowed",
+                : "bg-surface-3 text-ink-faint",
             )}
           >
             {t("lists.createList")}

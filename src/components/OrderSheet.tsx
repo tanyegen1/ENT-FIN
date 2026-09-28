@@ -11,6 +11,7 @@ import { usePortfolio } from "../context/PortfolioContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { useLocale } from "../context/LocaleContext";
 import { useCountUp } from "../hooks/useCountUp";
+import { useDraftAmount } from "../hooks/useDraftAmount";
 import { formatCurrency, formatCurrencyPrecise, formatShares } from "../lib/format";
 
 const SHEET_SPRING = { type: "spring", stiffness: 420, damping: 38 } as const;
@@ -37,7 +38,7 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
   const { t } = useLocale();
   const [side, setSide] = useState<Side>(initialSide);
   const [mode, setMode] = useState<Mode>("dollars");
-  const [raw, setRaw] = useState("0");
+  const [raw, setRaw, clearDraft] = useDraftAmount(`order.${stock.symbol}.${initialSide}`);
   const [step, setStep] = useState<Step>("entry");
 
   useEffect(() => {
@@ -96,6 +97,7 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
     if (side === "buy") buy(stock.symbol, shares, stock.price);
     else sell(stock.symbol, shares, stock.price);
     setStep("success");
+    clearDraft();
   };
 
   const displayValue = useMemo(() => {
@@ -126,7 +128,7 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
           </span>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
             aria-label={t("common.close")}
           >
             <X size={20} />

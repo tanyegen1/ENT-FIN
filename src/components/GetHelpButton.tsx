@@ -76,7 +76,7 @@ function GetHelpSheet({ refType, refLabel, onClose }: GetHelpSheetProps) {
           <span className="text-[15px] font-semibold text-ink">{t("support.newRequestTitle")}</span>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
             aria-label={t("common.close")}
           >
             <X size={20} />
