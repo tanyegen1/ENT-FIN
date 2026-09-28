@@ -107,20 +107,16 @@ html, body, #root {
 /* Text-size preference — scales the whole app (text, spacing, and touch
    targets together) the same way native browser zoom does, since most of
    this app's type is set in fixed px rather than rem and wouldn't respond
-   to a root font-size change on its own. */
-:root,
-:root[data-text-size="default"] {
-  --text-zoom: 1;
+   to a root font-size change on its own. Only applied for the non-default
+   sizes: `zoom` is a legacy, non-standard property with known repaint bugs
+   on some mobile browsers (content can go blank after a DOM swap — e.g. a
+   route change — until something forces a repaint), so leaving it off
+   `#root` entirely at the default size keeps the common case unaffected. */
+:root[data-text-size="large"] #root {
+  zoom: 1.15;
 }
-:root[data-text-size="large"] {
-  --text-zoom: 1.15;
-}
-:root[data-text-size="xlarge"] {
-  --text-zoom: 1.3;
-}
-
-#root {
-  zoom: var(--text-zoom);
+:root[data-text-size="xlarge"] #root {
+  zoom: 1.3;
 }
 
 body {
