@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { Bell, House, Search, ListChecks, CircleUser, Globe } from "lucide-react";
 import { Logo } from "./Logo";
 import { LocaleCurrencySheet } from "./LocaleCurrencySheet";
+import { ChatWidget } from "./ChatWidget";
 import { useLocale } from "../context/LocaleContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { useNotifications } from "../context/NotificationsContext";
@@ -134,6 +135,7 @@ export function NavShell() {
       <AnimatePresence>
         {showLocaleSheet && <LocaleCurrencySheet onClose={() => setShowLocaleSheet(false)} />}
       </AnimatePresence>
+      <ChatWidget />
     </LayoutGroup>
   );
 }

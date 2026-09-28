@@ -13,6 +13,7 @@ import { GoalsProvider } from "./context/GoalsContext";
 import { ListsProvider } from "./context/ListsContext";
 import { SessionsProvider } from "./context/SessionsContext";
 import { PreferencesProvider } from "./context/PreferencesContext";
+import { ChatProvider } from "./context/ChatContext";
 import { NavShell } from "./components/NavShell";
 import { Home } from "./pages/Home";
 import { Search } from "./pages/Search";
@@ -62,26 +63,28 @@ function AppRoutes() {
             <GoalsProvider>
               <ListsProvider>
                 <SessionsProvider>
-                  <Routes>
-                    <Route element={<NavShell />}>
-                      <Route path="/" element={<Home />} />
-                      <Route path="/search" element={<Search />} />
-                      <Route path="/lists" element={<Lists />} />
-                      <Route path="/lists/:id" element={<ListDetailPage />} />
-                      <Route path="/compare/:symbols" element={<ComparePage />} />
-                      <Route path="/account" element={<Account />} />
-                      <Route path="/stock/:symbol" element={<StockDetail />} />
-                      <Route path="/taxes" element={<TaxCenter />} />
-                      <Route path="/notifications" element={<NotificationsPage />} />
-                      <Route path="/support" element={<SupportInbox />} />
-                      <Route path="/support/:id" element={<SupportThread />} />
-                      <Route path="/recurring" element={<RecurringPage />} />
-                      <Route path="/goals" element={<GoalsPage />} />
-                      <Route path="/goals/:id" element={<GoalDetailPage />} />
-                      <Route path="/performance" element={<PerformancePage />} />
-                      <Route path="/trust" element={<TrustPage />} />
-                    </Route>
-                  </Routes>
+                  <ChatProvider>
+                    <Routes>
+                      <Route element={<NavShell />}>
+                        <Route path="/" element={<Home />} />
+                        <Route path="/search" element={<Search />} />
+                        <Route path="/lists" element={<Lists />} />
+                        <Route path="/lists/:id" element={<ListDetailPage />} />
+                        <Route path="/compare/:symbols" element={<ComparePage />} />
+                        <Route path="/account" element={<Account />} />
+                        <Route path="/stock/:symbol" element={<StockDetail />} />
+                        <Route path="/taxes" element={<TaxCenter />} />
+                        <Route path="/notifications" element={<NotificationsPage />} />
+                        <Route path="/support" element={<SupportInbox />} />
+                        <Route path="/support/:id" element={<SupportThread />} />
+                        <Route path="/recurring" element={<RecurringPage />} />
+                        <Route path="/goals" element={<GoalsPage />} />
+                        <Route path="/goals/:id" element={<GoalDetailPage />} />
+                        <Route path="/performance" element={<PerformancePage />} />
+                        <Route path="/trust" element={<TrustPage />} />
+                      </Route>
+                    </Routes>
+                  </ChatProvider>
                 </SessionsProvider>
               </ListsProvider>
             </GoalsProvider>
