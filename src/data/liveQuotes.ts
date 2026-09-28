@@ -1,17 +1,24 @@
 import { useSyncExternalStore } from "react";
 import type { Stock } from "../types";
-import { getStock } from "./stocks";
+import { STOCKS, getStock } from "./stocks";
 
-// Real quotes are wired up for only these five tickers. Stocks go through
-// Finnhub (needs a free API key you get yourself — see README); Bitcoin
-// goes through CoinGecko, which needs no key and allows direct browser
-// calls. Everything else in the app stays on static mock data.
-export const LIVE_SYMBOLS = ["AAPL", "TSLA", "NVDA", "COIN", "BTC"] as const;
-export type LiveSymbol = (typeof LIVE_SYMBOLS)[number];
+// Every stock in the data file gets a real, polled quote — stocks and funds
+// go through Finnhub (needs a free API key you get yourself — see README);
+// crypto goes through CoinGecko, which needs no key and allows direct
+// browser calls. Derived from STOCKS itself so a symbol added there is
+// automatically wired up for live quotes too, no separate list to update.
+export const LIVE_SYMBOLS = STOCKS.map((s) => s.symbol);
+export type LiveSymbol = string;
 
 export function isLiveSymbol(symbol: string): symbol is LiveSymbol {
-  return (LIVE_SYMBOLS as readonly string[]).includes(symbol);
+  return LIVE_SYMBOLS.includes(symbol);
 }
+
+// CoinGecko identifies coins by slug, not ticker — map the crypto symbols
+// this app knows about to their CoinGecko id here as more are added.
+const COINGECKO_IDS: Partial<Record<string, string>> = {
+  BTC: "bitcoin",
+};
 
 export interface LiveQuote {
   price: number;
@@ -22,7 +29,12 @@ export interface LiveQuote {
 export type QuoteStatus = "idle" | "loading" | "live" | "error";
 
 const FINNHUB_KEY = import.meta.env.VITE_FINNHUB_API_KEY as string | undefined;
-const POLL_MS = 20_000;
+// Finnhub's free tier caps out at 60 calls/minute. With one call per stock
+// per poll, this interval needs to scale with how many symbols are live —
+// a fixed 20s was fine for 5 tickers but would blow past the cap once every
+// stock in STOCKS is included. 45s keeps even a worst-case overlap between
+// two poll cycles comfortably under the limit.
+const POLL_MS = 45_000;
 
 const quotes: Partial<Record<LiveSymbol, LiveQuote>> = {};
 const statuses: Partial<Record<LiveSymbol, QuoteStatus>> = {};
@@ -62,24 +74,34 @@ async function fetchFinnhubQuote(symbol: LiveSymbol): Promise<LiveQuote> {
   return { price: data.c, prevClose: data.pc, updatedAt: Date.now() };
 }
 
-async function fetchBitcoinQuote(): Promise<LiveQuote> {
+async function fetchCoinGeckoQuote(coinId: string): Promise<LiveQuote> {
   const res = await fetch(
-    "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true",
+    `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_change=true`,
   );
   if (!res.ok) throw new Error(`CoinGecko returned HTTP ${res.status}`);
   const data = await res.json();
-  const price = data?.bitcoin?.usd;
-  const changePct = data?.bitcoin?.usd_24h_change;
+  const price = data?.[coinId]?.usd;
+  const changePct = data?.[coinId]?.usd_24h_change;
   if (typeof price !== "number") throw new Error("CoinGecko returned no data");
   const prevClose = typeof changePct === "number" ? price / (1 + changePct / 100) : price;
   return { price, prevClose, updatedAt: Date.now() };
+}
+
+async function fetchQuoteFor(symbol: LiveSymbol): Promise<LiveQuote> {
+  const isCrypto = getStock(symbol)?.category === "crypto";
+  if (isCrypto) {
+    const coinId = COINGECKO_IDS[symbol];
+    if (!coinId) throw new Error(`No CoinGecko id mapped for ${symbol}`);
+    return fetchCoinGeckoQuote(coinId);
+  }
+  return fetchFinnhubQuote(symbol);
 }
 
 async function refreshSymbol(symbol: LiveSymbol) {
   statuses[symbol] = "loading";
   emit();
   try {
-    quotes[symbol] = symbol === "BTC" ? await fetchBitcoinQuote() : await fetchFinnhubQuote(symbol);
+    quotes[symbol] = await fetchQuoteFor(symbol);
     statuses[symbol] = "live";
     delete errors[symbol];
   } catch (err) {

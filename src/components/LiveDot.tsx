@@ -6,7 +6,7 @@ interface LiveDotProps {
   showLabel?: boolean;
 }
 
-/** Small status indicator for the handful of tickers with real live quotes. */
+/** Small status indicator for a ticker's live-quote polling state. */
 export function LiveDot({ symbol, showLabel }: LiveDotProps) {
   const { t } = useLocale();
   const status = useQuoteStatus(symbol);

@@ -5,9 +5,10 @@ the same interaction patterns and visual language as popular commission-free
 brokerage apps: a dark theme, green/red price deltas, a scrubbable price
 chart, and a market-order flow driven by a numeric keypad.
 
-It's a **paper-trading practice app** — all money is simulated. Most stock
-data is mocked client-side; five tickers pull real live prices (see below).
-Accounts and saved portfolios are optional and backed by Supabase (see
+It's a **paper-trading practice app** — all money is simulated. Every stock,
+fund, and crypto asset in the app pulls a real, polled market price (see
+below) — only the trades themselves are simulated. Accounts and saved
+portfolios are optional and backed by Supabase (see
 "Accounts & saved data" below) — without it configured, the app runs
 entirely locally, no login required.
 
@@ -60,22 +61,32 @@ needed. Leave it on for a real deployment other people will use.
   are included in case you ever switch to `BrowserRouter` for a real
   deployment, but aren't required as things stand.)
 
-## Live data (5 tickers only)
+## Live data (every stock in the app)
 
-AAPL, TSLA, NVDA, COIN, and BTC show real, polled market data — current
-price, day change, and the portfolio math derived from them — everywhere
-else in the app stays static mock data.
+Every symbol in [`src/data/stocks.ts`](src/data/stocks.ts) — currently 19
+stocks/ETFs plus Bitcoin — shows a real, polled market price, day change,
+and the portfolio math derived from it. `src/data/liveQuotes.ts` derives the
+live-symbol list from that file directly, so a stock added there is
+automatically wired up for live quotes too, with no second list to keep in
+sync.
 
-- **BTC** needs no setup: it's fetched from CoinGecko's public API, which
-  allows direct browser calls with no key.
-- **AAPL / TSLA / NVDA / COIN** need a free [Finnhub](https://finnhub.io/register)
-  API key (no card, ~1 minute): paste it into `.env.local` as
-  `VITE_FINNHUB_API_KEY=...` (same file as the Supabase keys above), then
-  restart `npm run dev`.
+- **Bitcoin (BTC)** needs no setup: it's fetched from CoinGecko's public
+  API, which allows direct browser calls with no key. Any other crypto
+  added later needs its CoinGecko id added to `COINGECKO_IDS` in
+  `liveQuotes.ts`.
+- **Everything else** (stocks and ETFs) needs a free
+  [Finnhub](https://finnhub.io/register) API key (no card, ~1 minute):
+  paste it into `.env.local` as `VITE_FINNHUB_API_KEY=...` (same file as
+  the Supabase keys above), then restart `npm run dev`.
 
-Without a key, those four just fall back to the static mock price — the
-app still works, the small dot next to the ticker turns amber ("Demo
-data") instead of green ("Live") to say so. Quotes poll every 20 seconds.
+Without a key, stocks and ETFs just fall back to the static mock price —
+the app still works, the small dot next to the ticker turns amber ("Demo
+data") instead of green ("Live") to say so.
+
+Quotes poll every 45 seconds. That interval is sized for Finnhub's free
+tier — 60 calls/minute — against one call per stock per poll; if you add
+enough symbols to `stocks.ts` to approach that limit at 45s, raise `POLL_MS`
+in `liveQuotes.ts` rather than polling faster.
 
 The published Artifact preview link can't do this either, for the same
 sandbox reason as accounts above.
