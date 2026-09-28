@@ -22,6 +22,8 @@
   --color-up-soft: var(--t-up-soft);
   --color-down: var(--t-down);
   --color-down-soft: var(--t-down-soft);
+  --color-warn: var(--t-warn);
+  --color-warn-soft: var(--t-warn-soft);
 
   --color-brand: var(--t-brand);
   --color-brand-light: var(--t-brand-light);
@@ -51,6 +53,12 @@
   --t-down: #ff5000;
   --t-down-soft: #ff500020;
 
+  /* Neutral status color — "this isn't live data," "pending," etc.
+     Kept separate from --t-down so a stale-data dot is never mistaken
+     for a price drop. */
+  --t-warn: #e8a23c;
+  --t-warn-soft: #e8a23c20;
+
   /* Arvo brand blue, sampled from the logo (#1959e9) — the app's one
      accent color for brand, actions, and interactive/selected states. */
   --t-brand: #1959e9;
@@ -79,6 +87,9 @@
   --t-up-soft: #0a960015;
   --t-down: #d64400;
   --t-down-soft: #d6440015;
+
+  --t-warn: #b36b00;
+  --t-warn-soft: #b36b0015;
 
   --t-brand: #1959e9;
   --t-brand-light: #3b6fec;
