@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
-import { Bell, ChevronDown, Repeat, Star } from "lucide-react";
+import { Bell, ChevronDown, ChevronRight, Repeat, Star } from "lucide-react";
 import { getPriceHistory } from "../data/priceHistory";
 import { isLiveSymbol, useStock } from "../data/liveQuotes";
+import { getAnalystInsight } from "../data/analystInsights";
 import { usePortfolio } from "../context/PortfolioContext";
 import { useRecurring } from "../context/RecurringContext";
 import { useLocale } from "../context/LocaleContext";
@@ -20,6 +21,7 @@ import { StockLogo } from "../components/StockLogo";
 import { InfoTip } from "../components/InfoTip";
 import { InsightGlossary } from "../components/InsightGlossary";
 import { ComparisonSection } from "../components/ComparisonSection";
+import { RatingMeter } from "../components/RatingMeter";
 import { whatAmIInvestingIn, whatIsIt, riskFactors } from "../lib/explainers";
 import { formatCompactNumber, formatShares } from "../lib/format";
 import type { PricePoint, Range } from "../types";
@@ -52,6 +54,7 @@ export function StockDetail() {
   const holding = getHolding(stock.symbol);
   const watched = isWatched(stock.symbol);
   const existingPlan = plans.find((p) => p.symbol === stock.symbol);
+  const insight = getAnalystInsight(stock.symbol);
 
   const baseline = range === "1D" ? stock.prevClose : history[0]?.price ?? stock.price;
   const displayPrice = scrub ? scrub.price : stock.price;
@@ -173,6 +176,24 @@ export function StockDetail() {
           </div>
         )}
       </section>
+
+      {/* 4.5 Analyst outlook — only for the handful of symbols with weekly coverage */}
+      {insight && (
+        <section className="mt-6 px-4 lg:px-6">
+          <Link
+            to={`/stock/${stock.symbol}/outlook`}
+            className="flex items-center justify-between gap-3 rounded-2xl bg-surface-2 px-4 py-3.5 hover:bg-surface-3"
+          >
+            <div>
+              <div className="text-[13px] text-ink-faint">{t("analyst.cardHeading")}</div>
+              <div className="mt-1.5">
+                <RatingMeter rating={insight.rating} score={insight.score} />
+              </div>
+            </div>
+            <ChevronRight size={18} className="shrink-0 text-ink-faint" />
+          </Link>
+        </section>
+      )}
 
       {/* 5. Buy, save, or compare */}
       <section className="mt-8 px-4 lg:px-6">

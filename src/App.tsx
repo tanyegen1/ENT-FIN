@@ -20,6 +20,7 @@ import { Search } from "./pages/Search";
 import { Lists } from "./pages/Lists";
 import { Account } from "./pages/Account";
 import { StockDetail } from "./pages/StockDetail";
+import { AnalystOutlookPage } from "./pages/AnalystOutlookPage";
 import { TaxCenter } from "./pages/TaxCenter";
 import { NotificationsPage } from "./pages/NotificationsPage";
 import { SupportInbox } from "./pages/SupportInbox";
@@ -73,6 +74,7 @@ function AppRoutes() {
                         <Route path="/compare/:symbols" element={<ComparePage />} />
                         <Route path="/account" element={<Account />} />
                         <Route path="/stock/:symbol" element={<StockDetail />} />
+                        <Route path="/stock/:symbol/outlook" element={<AnalystOutlookPage />} />
                         <Route path="/taxes" element={<TaxCenter />} />
                         <Route path="/notifications" element={<NotificationsPage />} />
                         <Route path="/support" element={<SupportInbox />} />

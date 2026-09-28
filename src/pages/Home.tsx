@@ -21,6 +21,7 @@ import { CashSheet } from "../components/CashSheet";
 import { LocaleCurrencySheet } from "../components/LocaleCurrencySheet";
 import { NextStepCard } from "../components/NextStepCard";
 import { RecentActivityCard } from "../components/RecentActivityCard";
+import { SpotlightCarousel } from "../components/SpotlightCarousel";
 import type { PricePoint, Range } from "../types";
 
 interface ActionButtonProps {
@@ -231,6 +232,8 @@ export function Home() {
           <RecentActivityCard key="recent-activity" item={latestActivity} />
         )}
       </AnimatePresence>
+
+      <SpotlightCarousel />
 
       <section className="mt-8">
         <h2 className="px-4 pb-1 text-lg font-semibold text-ink lg:px-6">

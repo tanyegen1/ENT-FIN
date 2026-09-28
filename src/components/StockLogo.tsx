@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { SiApple, SiTesla, SiNvidia, SiCoinbase, SiBitcoin } from "@icons-pack/react-simple-icons";
+import { SiApple, SiTesla, SiNvidia, SiCoinbase, SiBitcoin, SiMeta } from "@icons-pack/react-simple-icons";
 import { initials } from "../lib/format";
 
 interface BrandIconProps {
@@ -8,7 +8,7 @@ interface BrandIconProps {
   title?: string;
 }
 
-// Real brand marks are only wired up for our five most-held tickers —
+// Real brand marks are only wired up for our most-held/most-featured tickers —
 // simple-icons dropped Amazon/Microsoft over trademark takedowns, so
 // every other symbol still falls back to the initials badge below.
 const BRAND_ICONS: Record<string, ComponentType<BrandIconProps>> = {
@@ -17,6 +17,7 @@ const BRAND_ICONS: Record<string, ComponentType<BrandIconProps>> = {
   NVDA: SiNvidia,
   COIN: SiCoinbase,
   BTC: SiBitcoin,
+  META: SiMeta,
 };
 
 interface StockLogoProps {

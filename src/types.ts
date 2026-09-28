@@ -137,3 +137,33 @@ export interface PriceAlert {
   createdAt: number;
   triggeredAt: number | null;
 }
+
+export type AnalystRating = "strong-sell" | "sell" | "hold" | "buy" | "strong-buy";
+
+export type FactorDirection = "positive" | "negative" | "neutral";
+
+export interface AnalystCatalyst {
+  direction: FactorDirection;
+  /** Authored prose, English only — same convention as Stock.about. */
+  detail: string;
+}
+
+/** A weekly, per-stock mock "analyst consensus" — simulated for this practice app, never real research. */
+export interface AnalystInsight {
+  symbol: string;
+  rating: AnalystRating;
+  /** 0-100 position on the Strong Sell -> Strong Buy meter. */
+  score: number;
+  targetLow: number;
+  targetAverage: number;
+  targetHigh: number;
+  horizonMonths: number;
+  summary: string;
+  catalysts: AnalystCatalyst[];
+}
+
+export interface AnalystFactor {
+  label: string;
+  direction: FactorDirection;
+  detail: string;
+}

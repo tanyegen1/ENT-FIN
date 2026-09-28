@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { X } from "lucide-react";
+import { TrendingUp, X } from "lucide-react";
 import clsx from "clsx";
 import type { Stock } from "../types";
 import { Keypad } from "./Keypad";
@@ -12,7 +12,9 @@ import { useCurrency } from "../context/CurrencyContext";
 import { useLocale } from "../context/LocaleContext";
 import { useCountUp } from "../hooks/useCountUp";
 import { useDraftAmount } from "../hooks/useDraftAmount";
-import { formatCurrency, formatCurrencyPrecise, formatShares } from "../lib/format";
+import { getAnalystInsight } from "../data/analystInsights";
+import { computeProjection } from "../lib/analystRating";
+import { formatCurrency, formatCurrencyPrecise, formatPercent, formatShares } from "../lib/format";
 
 const SHEET_SPRING = { type: "spring", stiffness: 420, damping: 38 } as const;
 const STEP_TRANSITION = {
@@ -54,6 +56,10 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
   const amount = Number(raw) || 0;
   const shares = mode === "dollars" ? amount / stock.price : amount;
   const cost = mode === "dollars" ? amount : amount * stock.price;
+
+  const analystInsight = getAnalystInsight(stock.symbol);
+  const projection =
+    side === "buy" && analystInsight && cost > 0 ? computeProjection(cost, stock, analystInsight) : null;
 
   const overBuy = side === "buy" && amount > 0 && cost > spendableCash + 0.005;
   const overSell = side === "sell" && amount > 0 && shares > ownedShares + 0.000001;
@@ -251,6 +257,36 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
               </span>
             </div>
 
+            <AnimatePresence>
+              {projection && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.18 }}
+                  className="overflow-hidden px-4"
+                >
+                  <div className="mb-4 rounded-2xl bg-surface-2 px-4 py-3.5">
+                    <div className="flex items-center gap-1.5 text-[12px] font-semibold text-ink-dim">
+                      <TrendingUp size={13} className="text-up" />
+                      {t("analyst.buyProjectionHeading")}
+                    </div>
+                    <p className="mt-1.5 text-[13px] leading-relaxed text-ink">
+                      {t("analyst.buyProjectionBody", {
+                        percent: formatPercent(projection.percent),
+                        months: analystInsight!.horizonMonths,
+                        amount: formatCurrency(cost),
+                        projected: formatCurrency(projection.projectedValue),
+                      })}
+                    </p>
+                    <p className="mt-1.5 text-[11px] leading-relaxed text-ink-faint">
+                      {t("analyst.buyProjectionDisclaimer")}
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <div className="px-4 pb-4">
               <Keypad
                 onDigit={handleDigit}
@@ -307,6 +343,20 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
                 <dt className="text-ink-faint">{t("orderSheet.fees")}</dt>
                 <dd className="tabular-nums text-ink">{formatCurrency(0)}</dd>
               </div>
+              {projection && (
+                <div className="flex justify-between gap-4">
+                  <dt className="flex shrink-0 items-center gap-1 text-ink-faint">
+                    {t("analyst.buyProjectionReviewLine")}
+                    <InfoTip width={230} definition={t("analyst.buyProjectionDisclaimer")} />
+                  </dt>
+                  <dd className="text-right tabular-nums text-ink">
+                    {formatCurrency(projection.projectedValue)}{" "}
+                    <span className={projection.percent >= 0 ? "text-up" : "text-down"}>
+                      ({formatPercent(projection.percent)})
+                    </span>
+                  </dd>
+                </div>
+              )}
               <div className="flex justify-between gap-4">
                 <dt className="shrink-0 text-ink-faint">{t("orderSheet.currencyConversion")}</dt>
                 <dd className="text-right text-ink">
