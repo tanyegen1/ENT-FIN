@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
-import { Bot, Send, Sparkles, X } from "lucide-react";
+import { Send, X } from "lucide-react";
 import { useLocale } from "../context/LocaleContext";
 import { useChat } from "../context/ChatContext";
+import { Logo } from "./Logo";
 
 const PANEL_SPRING = { type: "spring", stiffness: 420, damping: 38 } as const;
 
@@ -51,10 +52,10 @@ export function ChatWidget() {
             exit={{ opacity: 0, scale: 0.8 }}
             whileTap={{ scale: 0.92 }}
             transition={{ duration: 0.15 }}
-            className="brand-gradient brand-glow fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full text-white cursor-pointer lg:bottom-6 lg:right-6"
+            className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-xl cursor-pointer lg:bottom-6 lg:right-6"
           >
-            <Bot size={24} />
-            {hasUnread && <span className="absolute right-1 top-1 h-3 w-3 rounded-full border-2 border-app-bg bg-up" />}
+            <Logo size={30} />
+            {hasUnread && <span className="absolute right-0.5 top-0.5 h-3 w-3 rounded-full border-2 border-white bg-up" />}
           </motion.button>
         )}
       </AnimatePresence>
@@ -66,11 +67,11 @@ export function ChatWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.96 }}
             transition={PANEL_SPRING}
-            className="fixed inset-x-4 bottom-20 z-50 flex max-h-[75svh] flex-col overflow-hidden rounded-3xl border border-border-soft bg-surface shadow-2xl sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[380px] lg:bottom-6"
+            className="fixed inset-x-4 bottom-20 top-16 z-50 flex flex-col overflow-hidden rounded-3xl border border-border-soft bg-surface shadow-2xl sm:inset-x-auto sm:top-auto sm:bottom-6 sm:right-6 sm:h-[640px] sm:max-h-[85svh] sm:w-[380px] lg:bottom-6"
           >
             <div className="flex items-center gap-2.5 border-b border-border-soft px-4 py-3.5">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full brand-gradient text-white">
-                <Sparkles size={16} />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white">
+                <Logo size={20} />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-[14px] font-semibold text-ink">{t("chat.title")}</div>
@@ -88,9 +89,22 @@ export function ChatWidget() {
             <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
               <div className="flex flex-col gap-3">
                 {messages.length === 0 && (
-                  <div className="rounded-2xl bg-surface-2 px-3.5 py-3 text-[13px] leading-relaxed text-ink-dim">
-                    {t("chat.greeting")}
-                  </div>
+                  <>
+                    <div className="rounded-2xl bg-surface-2 px-3.5 py-3 text-[13px] leading-relaxed text-ink-dim">
+                      {t("chat.greeting")}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {quickQuestions.map((q) => (
+                        <button
+                          key={q}
+                          onClick={() => handleSend(q)}
+                          className="rounded-full bg-surface-2 px-3.5 py-2 text-[12px] font-medium text-ink-dim hover:bg-surface-3 cursor-pointer"
+                        >
+                          {q}
+                        </button>
+                      ))}
+                    </div>
+                  </>
                 )}
                 {messages.map((m) => (
                   <div
@@ -140,19 +154,6 @@ export function ChatWidget() {
               </div>
             </div>
 
-            {messages.length === 0 && (
-              <div className="flex gap-2 overflow-x-auto no-scrollbar px-4 pb-2">
-                {quickQuestions.map((q) => (
-                  <button
-                    key={q}
-                    onClick={() => handleSend(q)}
-                    className="shrink-0 rounded-full bg-surface-2 px-3.5 py-2 text-[12px] font-medium text-ink-dim hover:bg-surface-3 cursor-pointer"
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
-            )}
 
             <div className="flex items-center gap-2 border-t border-border-soft px-4 py-3">
               <input
