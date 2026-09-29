@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import clsx from "clsx";
@@ -45,6 +45,14 @@ export function NavShell() {
   const { displayCurrency } = useCurrency();
   const { unreadCount } = useNotifications();
   const [showLocaleSheet, setShowLocaleSheet] = useState(false);
+
+  // React Router doesn't reset scroll on navigation — without this, opening
+  // a new page (a stock, a list, the outlook report) can land mid-scroll,
+  // wherever the previous page happened to be. Runs before paint so there's
+  // no visible jump once the new page's content is on screen.
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   return (
     <LayoutGroup>
