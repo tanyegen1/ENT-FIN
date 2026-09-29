@@ -11,7 +11,8 @@ import {
 import { usePortfolio } from "./PortfolioContext";
 import { useLocale } from "./LocaleContext";
 import { useCurrency } from "./CurrencyContext";
-import { answerMessage } from "../lib/chatEngine";
+import { answerMessage, explainPriceRule } from "../lib/chatEngine";
+import type { PriceRuleOrder } from "../types";
 
 const STORAGE_KEY = "arvo.chat.v1";
 const REPLY_DELAY_MS = 650;
@@ -54,7 +55,11 @@ interface ChatContextValue {
   messages: ChatMessage[];
   isTyping: boolean;
   hasUnread: boolean;
+  isOpen: boolean;
+  setOpen: (open: boolean) => void;
   sendMessage: (text: string) => void;
+  /** Pushes a deterministic, mechanics-only explanation of one price rule and opens the panel. Never submits, edits, or cancels the order, and never picks a stock or price. */
+  explainRule: (order: PriceRuleOrder) => void;
   markRead: () => void;
   resetChat: () => void;
 }
@@ -65,10 +70,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<ChatMessage[]>(loadMessages);
   const [isTyping, setIsTyping] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const portfolio = usePortfolio();
   const { t } = useLocale();
   const { formatDisplay } = useCurrency();
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const setOpen = useCallback((open: boolean) => setIsOpen(open), []);
 
   useEffect(() => {
     return () => {
@@ -134,9 +142,46 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     saveMessages([]);
   }, []);
 
+  const explainRule = useCallback(
+    (order: PriceRuleOrder) => {
+      const technicalKey =
+        order.orderType === "buy-limit"
+          ? "priceRules.technicalBuyLimit"
+          : order.orderType === "buy-stop"
+            ? "priceRules.technicalBuyStop"
+            : order.orderType === "sell-limit"
+              ? "priceRules.technicalSellLimit"
+              : "priceRules.technicalSellStop";
+      const userText = t("chat.explainRuleUserPrompt", {
+        orderType: t(technicalKey),
+        symbol: order.symbol,
+        price: formatDisplay(order.targetPrice, { precise: true }),
+        quantity: order.quantity,
+      });
+      const userMessage: ChatMessage = { id: makeId(), sender: "user", text: userText, timestamp: Date.now() };
+      const reply = explainPriceRule(order, t, formatDisplay);
+      const assistantMessage: ChatMessage = {
+        id: makeId(),
+        sender: "assistant",
+        text: reply.text,
+        timestamp: Date.now() + 1,
+        linkTo: reply.linkTo,
+        linkLabel: reply.linkLabel,
+      };
+      setMessages((prev) => {
+        const next = [...prev, userMessage, assistantMessage];
+        saveMessages(next);
+        return next;
+      });
+      setIsOpen(true);
+      setHasUnread(false);
+    },
+    [t, formatDisplay],
+  );
+
   const value = useMemo<ChatContextValue>(
-    () => ({ messages, isTyping, hasUnread, sendMessage, markRead, resetChat }),
-    [messages, isTyping, hasUnread, sendMessage, markRead, resetChat],
+    () => ({ messages, isTyping, hasUnread, isOpen, setOpen, sendMessage, explainRule, markRead, resetChat }),
+    [messages, isTyping, hasUnread, isOpen, setOpen, sendMessage, explainRule, markRead, resetChat],
   );
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

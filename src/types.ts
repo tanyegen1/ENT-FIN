@@ -167,3 +167,56 @@ export interface AnalystFactor {
   direction: FactorDirection;
   detail: string;
 }
+
+// ---- Practice price rules (limit/stop orders) ----
+// Beginner-facing name is "price rule"; these are the technical order types
+// it maps to. "market" isn't included here — an instant buy/sell keeps using
+// the existing OrderRecord path unchanged.
+export type PriceRuleOrderType = "buy-limit" | "buy-stop" | "sell-limit" | "sell-stop";
+
+export type PriceRuleStatus =
+  | "waiting" // Waiting for price
+  | "triggered" // Stop activated, converted to a market order, awaiting execution
+  | "partial" // Partially filled
+  | "filled"
+  | "cancelled"
+  | "expired"
+  | "rejected";
+
+export type PriceRuleDuration = "today" | "date";
+
+export interface PriceRuleFill {
+  id: string;
+  shares: number;
+  price: number;
+  timestamp: number;
+}
+
+export interface PriceRuleOrder {
+  id: string;
+  symbol: string;
+  side: "buy" | "sell";
+  orderType: PriceRuleOrderType;
+  /** The limit or stop price the user set. */
+  targetPrice: number;
+  /** Whole shares requested. */
+  quantity: number;
+  filledQuantity: number;
+  fills: PriceRuleFill[];
+  status: PriceRuleStatus;
+  createdAt: number;
+  duration: PriceRuleDuration;
+  /** Resolved expiry timestamp — end of the current simulated session for "today", or the chosen date's session close for "date". */
+  expiresAt: number;
+  /** Cash held back from spendable cash while this buy rule is pending (0 for sell rules). */
+  reservedCash: number;
+  /** Shares held back from sellable shares while this sell rule is pending (0 for buy rules). */
+  reservedShares: number;
+  /** Short, plain-language note about the current or final status (e.g. a rejection or fill explanation). */
+  statusMessage: string | null;
+  triggeredAt: number | null;
+  filledAt: number | null;
+  cancelledAt: number | null;
+  expiredAt: number | null;
+  rejectedAt: number | null;
+}

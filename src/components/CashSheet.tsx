@@ -165,7 +165,9 @@ export function CashSheet({ mode, onClose }: CashSheetProps) {
                               <span>{t("common.spendableCash")}</span>
                               <span className="tabular-nums">{formatCurrency(spendableCash)}</span>
                             </div>
-                            <p className="pt-1 text-ink-faint">{t("common.reservedExplanationZero")}</p>
+                            <p className="pt-1 text-ink-faint">
+                              {t(reservedCash > 0.005 ? "common.reservedExplanation" : "common.reservedExplanationZero")}
+                            </p>
                           </div>
                         }
                       />

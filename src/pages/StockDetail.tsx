@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
-import { Bell, ChevronDown, ChevronRight, Repeat, Star } from "lucide-react";
+import { Bell, ChevronDown, ChevronRight, Repeat, SlidersHorizontal, Star } from "lucide-react";
 import { getPriceHistory } from "../data/priceHistory";
 import { isLiveSymbol, useStock } from "../data/liveQuotes";
 import { getAnalystInsight } from "../data/analystInsights";
@@ -16,6 +16,7 @@ import { PageHeader } from "../components/PageHeader";
 import { OrderSheet } from "../components/OrderSheet";
 import { RecurringSheet } from "../components/RecurringSheet";
 import { PriceAlertSheet } from "../components/PriceAlertSheet";
+import { PriceRuleSheet } from "../components/PriceRuleSheet";
 import { LiveDot } from "../components/LiveDot";
 import { StockLogo } from "../components/StockLogo";
 import { InfoTip } from "../components/InfoTip";
@@ -53,6 +54,7 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [recurringOpen, setRecurringOpen] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
+  const [priceRuleOpen, setPriceRuleOpen] = useState(false);
 
   const history = useMemo(
     () =>
@@ -262,6 +264,16 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
         </div>
 
         <motion.button
+          onClick={() => setPriceRuleOpen(true)}
+          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-full border border-dashed border-border py-2.5 text-[13px] font-semibold text-ink-dim hover:bg-surface-2 cursor-pointer"
+          whileTap={{ scale: 0.98 }}
+          transition={{ duration: 0.12 }}
+        >
+          <SlidersHorizontal size={14} />
+          {t("priceRules.entryButton")}
+        </motion.button>
+
+        <motion.button
           onClick={() => setRecurringOpen(true)}
           className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-full border border-dashed border-border py-2.5 text-[13px] font-semibold text-ink-dim hover:bg-surface-2 cursor-pointer"
           whileTap={{ scale: 0.98 }}
@@ -347,6 +359,19 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
       </AnimatePresence>
       <AnimatePresence>
         {alertOpen && <PriceAlertSheet stock={stock} onClose={() => setAlertOpen(false)} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {priceRuleOpen && (
+          <PriceRuleSheet
+            stock={stock}
+            initialSide="buy"
+            onClose={() => setPriceRuleOpen(false)}
+            onOpenMarketOrder={(side) => {
+              setPriceRuleOpen(false);
+              setOrder(side);
+            }}
+          />
+        )}
       </AnimatePresence>
     </div>
   );

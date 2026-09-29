@@ -1,4 +1,4 @@
-import type { AssetCategory, Holding, Stock, TransferRecord } from "../types";
+import type { AssetCategory, Holding, PriceRuleOrder, PriceRuleOrderType, Stock, TransferRecord } from "../types";
 import { STOCKS, getStock, stocksByCategory } from "../data/stocks";
 import { buildInsights } from "./insights";
 import { formatShares } from "./format";
@@ -292,4 +292,72 @@ export function answerMessage(rawMessage: string, ctx: Ctx): ChatReply {
   }
 
   return { text: t("chat.fallback") };
+}
+
+const MECHANICS_KEY: Record<PriceRuleOrderType, string> = {
+  "buy-limit": "priceRules.explainBuyLimit",
+  "buy-stop": "priceRules.explainBuyStop",
+  "sell-limit": "priceRules.explainSellLimit",
+  "sell-stop": "priceRules.explainSellStop",
+};
+
+/**
+ * A deterministic, mechanics-only explanation of one price rule — never a
+ * real AI call. This app's chatbot has never been a live model integration
+ * (answerMessage above is the same kind of scripted keyword engine), so
+ * this reuses that honest pattern rather than pretending a working AI
+ * integration exists. It only reads the order passed in: it never chooses
+ * a stock or a price, and has no way to submit, edit, or cancel an order.
+ */
+export function explainPriceRule(order: PriceRuleOrder, t: T, formatDisplay: FormatAmount): ChatReply {
+  const price = formatDisplay(order.targetPrice, { precise: true });
+  const lines: string[] = [];
+
+  if (order.status === "waiting" || order.status === "triggered") {
+    lines.push(t("chat.explainRulePendingIntro"));
+    lines.push(t(MECHANICS_KEY[order.orderType], { price }));
+    lines.push(
+      t(order.status === "waiting" ? "priceRules.statusWaitingDetail" : "priceRules.statusTriggeredDetail", {
+        symbol: order.symbol,
+        price,
+      }),
+    );
+  } else {
+    lines.push(t("chat.explainRuleResolvedIntro"));
+    if (order.status === "filled" || order.status === "partial") {
+      const lastFill = order.fills[order.fills.length - 1];
+      const fillPrice = lastFill ? formatDisplay(lastFill.price, { precise: true }) : price;
+      const isStop = order.orderType === "buy-stop" || order.orderType === "sell-stop";
+      if (isStop && lastFill && Math.abs(lastFill.price - order.targetPrice) > 0.005) {
+        lines.push(t("priceRules.resultFilledStopGap", { target: price, price: fillPrice }));
+      } else {
+        lines.push(
+          t(order.side === "buy" ? "priceRules.resultFilledBuy" : "priceRules.resultFilledSell", {
+            shares: formatShares(order.filledQuantity),
+            symbol: order.symbol,
+            price: fillPrice,
+            target: price,
+          }),
+        );
+      }
+      if (order.status === "partial") {
+        lines.push(t("priceRules.statusPartialDetail", { filled: formatShares(order.filledQuantity), quantity: order.quantity }));
+      }
+    } else {
+      const detailKey =
+        order.status === "cancelled"
+          ? "priceRules.statusCancelledDetail"
+          : order.status === "expired"
+            ? "priceRules.statusExpiredDetail"
+            : "priceRules.statusRejectedDetail";
+      lines.push(
+        t(detailKey, order.status === "rejected" ? { reason: t("priceRules.rejectionReasonGap") } : undefined),
+      );
+    }
+  }
+
+  lines.push("");
+  lines.push(t("chat.explainRuleDisclaimer"));
+
+  return { text: lines.join("\n") };
 }

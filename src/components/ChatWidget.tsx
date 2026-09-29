@@ -12,8 +12,7 @@ const PANEL_SPRING = { type: "spring", stiffness: 420, damping: 38 } as const;
 export function ChatWidget() {
   const { t, locale } = useLocale();
   const navigate = useNavigate();
-  const { messages, isTyping, hasUnread, sendMessage, markRead, resetChat } = useChat();
-  const [open, setOpen] = useState(false);
+  const { messages, isTyping, hasUnread, isOpen: open, setOpen, sendMessage, markRead, resetChat } = useChat();
   const [text, setText] = useState("");
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);

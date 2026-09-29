@@ -11,7 +11,9 @@ import {
   FlaskConical,
   Globe,
   BarChart3,
+  GraduationCap,
   HelpCircle,
+  ListOrdered,
   LogIn,
   LogOut,
   Receipt,
@@ -25,7 +27,7 @@ import { usePortfolio } from "../context/PortfolioContext";
 import { useAuth } from "../context/AuthContext";
 import { useLocale } from "../context/LocaleContext";
 import { useCurrency } from "../context/CurrencyContext";
-import { ConfirmSheet } from "../components/ConfirmSheet";
+import { ResetPortfolioSheet } from "../components/ResetPortfolioSheet";
 import { LocaleCurrencySheet } from "../components/LocaleCurrencySheet";
 import { GetHelpButton } from "../components/GetHelpButton";
 import { MaskedAmount } from "../components/MaskedAmount";
@@ -63,6 +65,8 @@ export function Account() {
     { icon: BarChart3, label: t("performance.title"), to: "/performance" },
     { icon: Target, label: t("goals.title"), to: "/goals" },
     { icon: Repeat, label: t("recurring.title"), to: "/recurring" },
+    { icon: ListOrdered, label: t("account.settingsPriceRules"), to: "/price-rules" },
+    { icon: GraduationCap, label: t("account.settingsGuidedPractice"), to: "/lessons" },
     { icon: Bell, label: t("account.settingsNotifications"), to: "/notifications" },
     { icon: ShieldCheck, label: t("trust.title"), to: "/trust" },
     { icon: HelpCircle, label: t("account.settingsHelp"), to: "/support" },
@@ -295,13 +299,9 @@ export function Account() {
 
       <AnimatePresence>
         {showResetConfirm && (
-          <ConfirmSheet
-            title={t("account.resetConfirmTitle")}
-            description={t("account.resetConfirmDesc")}
-            confirmLabel={t("account.resetConfirmBtn")}
-            danger
-            onConfirm={() => {
-              resetPortfolio();
+          <ResetPortfolioSheet
+            onConfirm={(startingCash) => {
+              resetPortfolio(startingCash);
               setShowResetConfirm(false);
             }}
             onClose={() => setShowResetConfirm(false)}

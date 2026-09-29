@@ -31,6 +31,8 @@ import { GoalDetailPage } from "./pages/GoalDetailPage";
 import { PerformancePage } from "./pages/PerformancePage";
 import { ListDetailPage } from "./pages/ListDetailPage";
 import { ComparePage } from "./pages/ComparePage";
+import { PriceRulesPage } from "./pages/PriceRulesPage";
+import { LessonsPage } from "./pages/LessonsPage";
 import { TrustPage } from "./pages/TrustPage";
 import { Login } from "./pages/Login";
 import { Onboarding } from "./pages/Onboarding";
@@ -83,6 +85,8 @@ function AppRoutes() {
                         <Route path="/goals" element={<GoalsPage />} />
                         <Route path="/goals/:id" element={<GoalDetailPage />} />
                         <Route path="/performance" element={<PerformancePage />} />
+                        <Route path="/price-rules" element={<PriceRulesPage />} />
+                        <Route path="/lessons" element={<LessonsPage />} />
                         <Route path="/trust" element={<TrustPage />} />
                       </Route>
                     </Routes>
