@@ -6,6 +6,7 @@ import { Bell, House, Search, ListChecks, CircleUser, Globe } from "lucide-react
 import { Logo } from "./Logo";
 import { LocaleCurrencySheet } from "./LocaleCurrencySheet";
 import { ChatWidget } from "./ChatWidget";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { useLocale } from "../context/LocaleContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { useNotifications } from "../context/NotificationsContext";
@@ -99,7 +100,9 @@ export function NavShell() {
         <main className="min-h-svh w-full flex-1 overflow-x-hidden pb-20 lg:pb-0">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div key={location.pathname} {...getPageTransition(location.pathname)}>
-              <Outlet />
+              <ErrorBoundary>
+                <Outlet />
+              </ErrorBoundary>
             </motion.div>
           </AnimatePresence>
         </main>
