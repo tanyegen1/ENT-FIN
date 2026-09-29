@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { Bell, ChevronDown, ChevronRight, Repeat, SlidersHorizontal, Star } from "lucide-react";
-import { getPriceHistory } from "../data/priceHistory";
+import { usePriceHistory } from "../data/priceHistory";
 import { isLiveSymbol, useStock } from "../data/liveQuotes";
 import { getAnalystInsight } from "../data/analystInsights";
 import { usePortfolio } from "../context/PortfolioContext";
@@ -56,12 +56,10 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
   const [alertOpen, setAlertOpen] = useState(false);
   const [priceRuleOpen, setPriceRuleOpen] = useState(false);
 
-  const history = useMemo(
-    () =>
-      stock
-        ? getPriceHistory(stock.symbol, range, isLiveSymbol(stock.symbol) ? stock.price : undefined)
-        : [],
-    [stock, range],
+  const history = usePriceHistory(
+    stock?.symbol ?? symbol.toUpperCase(),
+    range,
+    stock && isLiveSymbol(stock.symbol) ? stock.price : undefined,
   );
 
   if (!stock) return <Navigate to="/search" replace />;

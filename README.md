@@ -91,6 +91,35 @@ in `liveQuotes.ts` rather than polling faster.
 The published Artifact preview link can't do this either, for the same
 sandbox reason as accounts above.
 
+### Chart history
+
+The main price chart on a stock's page (and the comparison chart against a
+benchmark/peer) tries real historical prices from the same two sources
+before falling back to a synthetic walk:
+
+- **BTC** — CoinGecko's `market_chart` endpoint, same free/keyless access
+  as its live quote.
+- **Stocks/ETFs** — Finnhub's `/stock/candle` endpoint, using the same
+  `VITE_FINNHUB_API_KEY`. Finnhub's free tier doesn't include candles for
+  US stocks on every plan; if a fetch comes back empty or rejected, that
+  chart just quietly uses the synthetic walk instead — same fallback
+  philosophy as the quotes above, and nothing in the UI claims it's real
+  when it isn't.
+
+`src/data/historyApi.ts` holds both fetchers (`fetchRealHistory`), and
+`src/data/priceHistory.ts` exports `usePriceHistory` — the hook that shows
+the synthetic walk immediately and swaps in real data if the fetch
+succeeds, cached per symbol+range for the session. The synthetic fallback
+itself is also more accurate now: its "1D" walk is anchored to the stock's
+actual previous close (not just its current price), and "YTD" uses the
+real number of elapsed days this year instead of a fixed guess.
+
+List-view sparklines (search results, watchlist rows, the home-page
+carousel) and the portfolio's aggregate value-over-time chart intentionally
+stay on the synthetic walk — fetching real history for every row in a list
+at once isn't a good use of a free API's rate limit, and those charts are
+illustrative rather than the ones a user is reading closely.
+
 ## Stack
 
 - React 19 + TypeScript, Vite build

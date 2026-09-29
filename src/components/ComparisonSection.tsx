@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import clsx from "clsx";
-import type { Range, Stock } from "../types";
+import type { PricePoint, Range, Stock } from "../types";
 import { STOCKS, getStock } from "../data/stocks";
-import { getPriceHistory } from "../data/priceHistory";
+import { usePriceHistory } from "../data/priceHistory";
 import { getLiveQuote, isLiveSymbol } from "../data/liveQuotes";
 import { useLocale } from "../context/LocaleContext";
 import { useCurrency } from "../context/CurrencyContext";
@@ -21,11 +21,12 @@ function friendlyName(symbol: string): string {
   return FRIENDLY_NAMES[symbol] ?? symbol;
 }
 
-function priceAt(symbol: string, range: Range): { first: number; last: number } | null {
-  const liveEnd = isLiveSymbol(symbol) ? getLiveQuote(symbol)?.price : undefined;
-  const history = getPriceHistory(symbol, range, liveEnd);
-  if (history.length === 0) return null;
-  return { first: history[0].price, last: history[history.length - 1].price };
+function returnOverHistory(history: PricePoint[]): number {
+  if (history.length === 0) return 0;
+  const first = history[0].price;
+  const last = history[history.length - 1].price;
+  if (first === 0) return 0;
+  return ((last - first) / first) * 100;
 }
 
 function rangePosition(stock: Stock): number {
@@ -65,13 +66,28 @@ export function ComparisonSection({ stock, range }: ComparisonSectionProps) {
   const [peerSymbol, setPeerSymbol] = useState(peerCandidates[0]?.symbol ?? benchmarkSymbol);
   const peerStock = getStock(peerSymbol) ?? peerCandidates[0];
 
+  // Hooks can't be called conditionally, so these three run unconditionally
+  // even though benchmark/peer series below are only included when those
+  // stocks resolve to something real and distinct.
+  const stockHistory = usePriceHistory(stock.symbol, range, isLiveSymbol(stock.symbol) ? stock.price : undefined);
+  const benchmarkHistory = usePriceHistory(
+    benchmarkSymbol,
+    range,
+    isLiveSymbol(benchmarkSymbol) ? getLiveQuote(benchmarkSymbol)?.price : undefined,
+  );
+  const peerHistory = usePriceHistory(
+    peerSymbol,
+    range,
+    isLiveSymbol(peerSymbol) ? getLiveQuote(peerSymbol)?.price : undefined,
+  );
+
   const series: ComparisonSeries[] = useMemo(() => {
     const result: ComparisonSeries[] = [
       {
         symbol: stock.symbol,
         label: stock.symbol,
         color: "var(--color-ink)",
-        points: getPriceHistory(stock.symbol, range, isLiveSymbol(stock.symbol) ? stock.price : undefined),
+        points: stockHistory,
       },
     ];
     if (benchmarkStock) {
@@ -79,11 +95,7 @@ export function ComparisonSection({ stock, range }: ComparisonSectionProps) {
         symbol: benchmarkStock.symbol,
         label: friendlyName(benchmarkStock.symbol),
         color: BENCHMARK_COLOR,
-        points: getPriceHistory(
-          benchmarkStock.symbol,
-          range,
-          isLiveSymbol(benchmarkStock.symbol) ? getLiveQuote(benchmarkStock.symbol)?.price : undefined,
-        ),
+        points: benchmarkHistory,
       });
     }
     if (peerStock && peerStock.symbol !== benchmarkStock?.symbol && peerStock.symbol !== stock.symbol) {
@@ -91,21 +103,18 @@ export function ComparisonSection({ stock, range }: ComparisonSectionProps) {
         symbol: peerStock.symbol,
         label: peerStock.symbol,
         color: PEER_COLOR,
-        points: getPriceHistory(
-          peerStock.symbol,
-          range,
-          isLiveSymbol(peerStock.symbol) ? getLiveQuote(peerStock.symbol)?.price : undefined,
-        ),
+        points: peerHistory,
       });
     }
     return result;
-  }, [stock, range, benchmarkStock, peerStock]);
+  }, [stock, benchmarkStock, peerStock, stockHistory, benchmarkHistory, peerHistory]);
 
-  const returnFor = (symbol: string) => {
-    const p = priceAt(symbol, range);
-    if (!p || p.first === 0) return 0;
-    return ((p.last - p.first) / p.first) * 100;
-  };
+  // Driven by the same fetched history the chart above renders, so this
+  // number can never disagree with what the chart visually shows.
+  const stockReturn = returnOverHistory(stockHistory);
+  const benchmarkReturn = returnOverHistory(benchmarkHistory);
+  const peerReturn = returnOverHistory(peerHistory);
+  const formatReturn = (value: number) => `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
 
   const tableRows: {
     label: string;
@@ -115,11 +124,9 @@ export function ComparisonSection({ stock, range }: ComparisonSectionProps) {
   }[] = [
     {
       label: t("insights.metricReturn", { range }),
-      stock: `${returnFor(stock.symbol) >= 0 ? "+" : ""}${returnFor(stock.symbol).toFixed(2)}%`,
-      benchmark: benchmarkStock
-        ? `${returnFor(benchmarkStock.symbol) >= 0 ? "+" : ""}${returnFor(benchmarkStock.symbol).toFixed(2)}%`
-        : "—",
-      peer: peerStock ? `${returnFor(peerStock.symbol) >= 0 ? "+" : ""}${returnFor(peerStock.symbol).toFixed(2)}%` : "—",
+      stock: formatReturn(stockReturn),
+      benchmark: benchmarkStock ? formatReturn(benchmarkReturn) : "—",
+      peer: peerStock ? formatReturn(peerReturn) : "—",
     },
     {
       label: t("insights.metricPe"),
