@@ -1,19 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
-import { Send, X } from "lucide-react";
+import { RotateCcw, Send, X } from "lucide-react";
 import { useLocale } from "../context/LocaleContext";
 import { useChat } from "../context/ChatContext";
 import { Logo } from "./Logo";
+import { ConfirmSheet } from "./ConfirmSheet";
 
 const PANEL_SPRING = { type: "spring", stiffness: 420, damping: 38 } as const;
 
 export function ChatWidget() {
   const { t, locale } = useLocale();
   const navigate = useNavigate();
-  const { messages, isTyping, hasUnread, sendMessage, markRead } = useChat();
+  const { messages, isTyping, hasUnread, sendMessage, markRead, resetChat } = useChat();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
+  const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -77,6 +79,16 @@ export function ChatWidget() {
                 <div className="text-[14px] font-semibold text-ink">{t("chat.title")}</div>
                 <div className="truncate text-[11px] text-ink-faint">{t("chat.subtitle")}</div>
               </div>
+              {messages.length > 0 && (
+                <button
+                  onClick={() => setConfirmResetOpen(true)}
+                  aria-label={t("chat.resetLabel")}
+                  title={t("chat.resetLabel")}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
+                >
+                  <RotateCcw size={16} />
+                </button>
+              )}
               <button
                 onClick={() => setOpen(false)}
                 aria-label={t("chat.closeLabel")}
@@ -175,6 +187,22 @@ export function ChatWidget() {
               </button>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {confirmResetOpen && (
+          <ConfirmSheet
+            title={t("chat.resetConfirmTitle")}
+            description={t("chat.resetConfirmDesc")}
+            confirmLabel={t("chat.resetConfirmBtn")}
+            danger
+            onConfirm={() => {
+              resetChat();
+              setConfirmResetOpen(false);
+            }}
+            onClose={() => setConfirmResetOpen(false)}
+          />
         )}
       </AnimatePresence>
     </>

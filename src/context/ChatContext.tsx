@@ -56,6 +56,7 @@ interface ChatContextValue {
   hasUnread: boolean;
   sendMessage: (text: string) => void;
   markRead: () => void;
+  resetChat: () => void;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -125,9 +126,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   const markRead = useCallback(() => setHasUnread(false), []);
 
+  const resetChat = useCallback(() => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setIsTyping(false);
+    setHasUnread(false);
+    setMessages([]);
+    saveMessages([]);
+  }, []);
+
   const value = useMemo<ChatContextValue>(
-    () => ({ messages, isTyping, hasUnread, sendMessage, markRead }),
-    [messages, isTyping, hasUnread, sendMessage, markRead],
+    () => ({ messages, isTyping, hasUnread, sendMessage, markRead, resetChat }),
+    [messages, isTyping, hasUnread, sendMessage, markRead, resetChat],
   );
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
