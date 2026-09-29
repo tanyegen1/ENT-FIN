@@ -213,6 +213,8 @@ const tr: Messages = {
     actionsHeading: "Al, kaydet veya karşılaştır",
     moreDetails: "Daha fazla detay",
     hideDetails: "Detayları gizle",
+    viewStockInfo: "Hisse Bilgisini Görüntüle",
+    hideStockInfo: "Hisse Bilgisini Gizle",
     save: "Kaydet",
     saved: "Kaydedildi",
     yourPosition: "Senin pozisyonun",
@@ -772,7 +774,8 @@ const tr: Messages = {
   analyst: {
     sectionTitle: "Bu haftanın seçkisi",
     sectionSubtitle: "Yakından takip edilen 5 hisse için haftalık güncellenen analist görünümü.",
-    cardHeading: "Analist görünümü",
+    cardHeading: "Analist güveni",
+    viewConfidenceNews: "Güven ve haberleri görüntüle",
     updatedLabel: "{{date}} haftasında güncellendi",
     horizonLabel: "{{months}} aylık görünüm",
     ratingStrongSell: "Güçlü Sat",

@@ -49,6 +49,7 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
   const [range, setRange] = useState<Range>("1D");
   const [scrub, setScrub] = useState<PricePoint | null>(null);
   const [order, setOrder] = useState<"buy" | "sell" | null>(null);
+  const [infoOpen, setInfoOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [recurringOpen, setRecurringOpen] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
@@ -109,29 +110,53 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
         </div>
       </div>
 
-      {/* 1. What is it? */}
+      {/* 1-3. What is it / what am I investing in / risks — collapsed by default */}
       <section className="mt-6 px-4 lg:px-6">
-        <h2 className="text-lg font-semibold text-ink">{t("stockDetail.whatIsItHeading")}</h2>
-        <p className="mt-2 text-[14px] leading-relaxed text-ink-dim">{whatIsIt(stock, t)}</p>
-      </section>
+        <button
+          onClick={() => setInfoOpen((v) => !v)}
+          className="flex w-full items-center justify-between rounded-xl py-2 text-left cursor-pointer"
+        >
+          <h2 className="text-lg font-semibold text-ink">
+            {infoOpen ? t("stockDetail.hideStockInfo") : t("stockDetail.viewStockInfo")}
+          </h2>
+          <motion.span animate={{ rotate: infoOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+            <ChevronDown size={20} className="text-ink-faint" />
+          </motion.span>
+        </button>
 
-      {/* 2. What am I investing in? */}
-      <section className="mt-6 px-4 lg:px-6">
-        <h2 className="text-lg font-semibold text-ink">{t("stockDetail.whatAmIInvestingHeading")}</h2>
-        <p className="mt-2 text-[14px] leading-relaxed text-ink-dim">{whatAmIInvestingIn(stock, t)}</p>
-      </section>
-
-      {/* 3. What could affect its value? */}
-      <section className="mt-6 px-4 lg:px-6">
-        <h2 className="text-lg font-semibold text-ink">{t("stockDetail.risksHeading")}</h2>
-        <ul className="mt-2 flex flex-col gap-2">
-          {riskFactors(stock, t).map((risk) => (
-            <li key={risk} className="flex gap-2 text-[14px] leading-relaxed text-ink-dim">
-              <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-ink-faint" />
-              <span>{risk}</span>
-            </li>
-          ))}
-        </ul>
+        <AnimatePresence initial={false}>
+          {infoOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              className="overflow-hidden"
+            >
+              <div className="flex flex-col gap-6 pb-1 pt-2">
+                <div>
+                  <h3 className="text-[15px] font-semibold text-ink">{t("stockDetail.whatIsItHeading")}</h3>
+                  <p className="mt-2 text-[14px] leading-relaxed text-ink-dim">{whatIsIt(stock, t)}</p>
+                </div>
+                <div>
+                  <h3 className="text-[15px] font-semibold text-ink">{t("stockDetail.whatAmIInvestingHeading")}</h3>
+                  <p className="mt-2 text-[14px] leading-relaxed text-ink-dim">{whatAmIInvestingIn(stock, t)}</p>
+                </div>
+                <div>
+                  <h3 className="text-[15px] font-semibold text-ink">{t("stockDetail.risksHeading")}</h3>
+                  <ul className="mt-2 flex flex-col gap-2">
+                    {riskFactors(stock, t).map((risk) => (
+                      <li key={risk} className="flex gap-2 text-[14px] leading-relaxed text-ink-dim">
+                        <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-ink-faint" />
+                        <span>{risk}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </section>
 
       {/* 4. Price and performance */}
@@ -162,6 +187,21 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
           <RangeTabs value={range} onChange={setRange} positive={positive} />
         </div>
 
+        {/* Confidence bar — only for the handful of symbols with weekly analyst coverage */}
+        {insight && (
+          <div className="mt-6 rounded-2xl bg-surface-2 px-4 py-4">
+            <div className="text-[13px] text-ink-faint">{t("analyst.cardHeading")}</div>
+            <RatingMeter rating={insight.rating} score={insight.score} variant="gauge" className="mt-3" />
+            <Link
+              to={`/stock/${stock.symbol}/outlook`}
+              className="mt-4 flex items-center justify-center gap-1.5 rounded-full bg-brand-soft py-2.5 text-[13px] font-semibold text-brand-light hover:brightness-125"
+            >
+              {t("analyst.viewConfidenceNews")}
+              <ChevronRight size={14} />
+            </Link>
+          </div>
+        )}
+
         {holding && (
           <div className="mt-6 rounded-2xl bg-surface-2 px-4 py-3.5">
             <div className="text-[13px] text-ink-faint">{t("stockDetail.yourPosition")}</div>
@@ -188,24 +228,6 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
           </div>
         )}
       </section>
-
-      {/* 4.5 Analyst outlook — only for the handful of symbols with weekly coverage */}
-      {insight && (
-        <section className="mt-6 px-4 lg:px-6">
-          <Link
-            to={`/stock/${stock.symbol}/outlook`}
-            className="flex items-center justify-between gap-3 rounded-2xl bg-surface-2 px-4 py-3.5 hover:bg-surface-3"
-          >
-            <div>
-              <div className="text-[13px] text-ink-faint">{t("analyst.cardHeading")}</div>
-              <div className="mt-1.5">
-                <RatingMeter rating={insight.rating} score={insight.score} />
-              </div>
-            </div>
-            <ChevronRight size={18} className="shrink-0 text-ink-faint" />
-          </Link>
-        </section>
-      )}
 
       {/* 5. Buy, save, or compare */}
       <section className="mt-8 px-4 lg:px-6">

@@ -211,6 +211,8 @@ const en = {
     actionsHeading: "Buy, save, or compare",
     moreDetails: "More details",
     hideDetails: "Hide details",
+    viewStockInfo: "View Stock Information",
+    hideStockInfo: "Hide Stock Information",
     save: "Save",
     saved: "Saved",
     yourPosition: "Your position",
@@ -771,7 +773,8 @@ const en = {
   analyst: {
     sectionTitle: "This week's picks",
     sectionSubtitle: "Analyst outlook on 5 widely-watched names, updated weekly.",
-    cardHeading: "Analyst outlook",
+    cardHeading: "Analyst confidence",
+    viewConfidenceNews: "View confidence & news",
     updatedLabel: "Updated the week of {{date}}",
     horizonLabel: "{{months}}-month outlook",
     ratingStrongSell: "Strong Sell",

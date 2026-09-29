@@ -26,7 +26,7 @@ function SpotlightCard({ symbol }: { symbol: string }) {
   const history = getPriceHistory(symbol, "1D", stock.price);
 
   return (
-    <Link to={`/stock/${symbol}/outlook`} className="block shrink-0 snap-start">
+    <Link to={`/stock/${symbol}`} className="block shrink-0 snap-start">
       <motion.div
         whileTap={{ scale: 0.97 }}
         transition={{ duration: 0.12 }}
@@ -57,7 +57,7 @@ function SpotlightCard({ symbol }: { symbol: string }) {
   );
 }
 
-/** Luxurious horizontal spotlight for the 5 stocks with weekly analyst coverage — the discovery entry point into the outlook report. */
+/** Luxurious horizontal spotlight for the 5 stocks with weekly analyst coverage — each card opens the stock's main page, which surfaces the confidence bar leading into the full outlook report. */
 export function SpotlightCarousel() {
   const { t } = useLocale();
 
