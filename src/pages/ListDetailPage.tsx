@@ -11,8 +11,15 @@ import { useLocale } from "../context/LocaleContext";
 import { useLists } from "../context/ListsContext";
 import { getStock } from "../data/stocks";
 
+// Keyed by id so switching to a different list resets this page's own sheet
+// state (adding/comparing/deleting) instead of carrying it over — see the
+// matching comment on StockDetail for why React Router alone doesn't do this.
 export function ListDetailPage() {
   const { id = "" } = useParams();
+  return <ListDetailForId key={id} id={id} />;
+}
+
+function ListDetailForId({ id }: { id: string }) {
   const { lists, deleteList, removeSymbol, setNote } = useLists();
   const { t } = useLocale();
   const navigate = useNavigate();

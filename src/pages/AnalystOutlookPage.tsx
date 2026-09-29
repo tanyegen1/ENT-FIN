@@ -22,8 +22,15 @@ function FactorIcon({ direction }: { direction: FactorDirection }) {
   return <Minus className={cls} />;
 }
 
+// Keyed by symbol for the same reason as StockDetail — React Router doesn't
+// remount this page when :symbol changes, so without the key its local
+// state (e.g. the buy/sell sheet) could carry over from one stock to another.
 export function AnalystOutlookPage() {
   const { symbol = "" } = useParams();
+  return <AnalystOutlookForSymbol key={symbol.toUpperCase()} symbol={symbol} />;
+}
+
+function AnalystOutlookForSymbol({ symbol }: { symbol: string }) {
   const stock = useStock(symbol.toUpperCase());
   const insight = getAnalystInsight(symbol.toUpperCase());
   const { t, locale } = useLocale();

@@ -86,7 +86,7 @@ export function ComparisonSection({ stock, range }: ComparisonSectionProps) {
         ),
       });
     }
-    if (peerStock && peerStock.symbol !== benchmarkStock?.symbol) {
+    if (peerStock && peerStock.symbol !== benchmarkStock?.symbol && peerStock.symbol !== stock.symbol) {
       result.push({
         symbol: peerStock.symbol,
         label: peerStock.symbol,

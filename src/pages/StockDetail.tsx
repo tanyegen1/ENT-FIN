@@ -26,8 +26,20 @@ import { whatAmIInvestingIn, whatIsIt, riskFactors } from "../lib/explainers";
 import { formatCompactNumber, formatShares } from "../lib/format";
 import type { PricePoint, Range } from "../types";
 
+// React Router keeps the same StockDetail instance mounted when the :symbol
+// param changes (navigating AAPL -> META doesn't remount) — combined with
+// AnimatePresence keeping the outgoing page alive mid-exit-animation, that
+// let per-symbol state (like ComparisonSection's selected peer) leak from
+// one stock's page into the next, and in one observed case corrupted the
+// comparison chart's data enough to throw a React key-collision warning.
+// Keying by symbol forces a clean remount — and a fresh default state —
+// every time the viewed stock actually changes.
 export function StockDetail() {
   const { symbol = "" } = useParams();
+  return <StockDetailForSymbol key={symbol.toUpperCase()} symbol={symbol} />;
+}
+
+function StockDetailForSymbol({ symbol }: { symbol: string }) {
   const stock = useStock(symbol.toUpperCase());
   const { getHolding, isWatched, toggleWatchlist } = usePortfolio();
   const { plans } = useRecurring();

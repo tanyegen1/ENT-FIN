@@ -6,8 +6,15 @@ import { SupportStatusBadge } from "../components/SupportStatusBadge";
 import { useLocale } from "../context/LocaleContext";
 import { useSupport } from "../context/SupportContext";
 
+// Keyed by id so switching to a different ticket resets the draft reply
+// instead of carrying it over — see the matching comment on StockDetail for
+// why React Router alone doesn't do this.
 export function SupportThread() {
   const { id = "" } = useParams();
+  return <SupportThreadForId key={id} id={id} />;
+}
+
+function SupportThreadForId({ id }: { id: string }) {
   const { t, locale } = useLocale();
   const { getTicket, addUserMessage } = useSupport();
   const ticket = getTicket(id);

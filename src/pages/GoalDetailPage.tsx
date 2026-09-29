@@ -9,8 +9,15 @@ import { useLocale } from "../context/LocaleContext";
 import { useGoals } from "../context/GoalsContext";
 import { formatCurrency, formatSigned } from "../lib/format";
 
+// Keyed by id so switching to a different goal resets this page's own sheet
+// state (contributing/deleting) instead of carrying it over — see the
+// matching comment on StockDetail for why React Router alone doesn't do this.
 export function GoalDetailPage() {
   const { id = "" } = useParams();
+  return <GoalDetailForId key={id} id={id} />;
+}
+
+function GoalDetailForId({ id }: { id: string }) {
   const { goals, contributedTotal, currentValue, deleteGoal } = useGoals();
   const { t, locale } = useLocale();
   const navigate = useNavigate();
