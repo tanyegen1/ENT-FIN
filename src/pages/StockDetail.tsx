@@ -25,10 +25,13 @@ import { InfoTip } from "../components/InfoTip";
 import { InsightGlossary } from "../components/InsightGlossary";
 import { ComparisonSection } from "../components/ComparisonSection";
 import { RatingMeter } from "../components/RatingMeter";
+import { ChartToolsSheet, DEFAULT_CHART_TOOLS, type ChartToolsState } from "../components/ChartToolsSheet";
+import { RsiPanel } from "../components/RsiPanel";
 import { whatAmIInvestingIn, whatIsIt, riskFactors } from "../lib/explainers";
 import { formatCompactNumber, formatShares } from "../lib/format";
 import { getMarketSession } from "../lib/marketSession";
 import { describeDataInterval, formatTooltipDateTime } from "../lib/chartAxis";
+import { computeRsi, computeSma } from "../lib/indicators";
 import type { PricePoint, Range } from "../types";
 
 // React Router keeps the same StockDetail instance mounted when the :symbol
@@ -46,7 +49,7 @@ export function StockDetail() {
 
 function StockDetailForSymbol({ symbol }: { symbol: string }) {
   const stock = useStock(symbol.toUpperCase());
-  const { getHolding, isWatched, toggleWatchlist } = usePortfolio();
+  const { getHolding, isWatched, toggleWatchlist, priceRules } = usePortfolio();
   const { plans } = useRecurring();
   const { t, locale } = useLocale();
   const { formatDisplay } = useCurrency();
@@ -60,6 +63,8 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
   const [alertOpen, setAlertOpen] = useState(false);
   const [priceRuleConfig, setPriceRuleConfig] = useState<{ side: "buy" | "sell"; extendedHours?: boolean } | null>(null);
   const [showExtendedHours, setShowExtendedHours] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [tools, setTools] = useState<ChartToolsState>(DEFAULT_CHART_TOOLS);
 
   const history = usePriceHistory(
     stock?.symbol ?? symbol.toUpperCase(),
@@ -95,6 +100,44 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
   const displayedHistory = regularOnlyHistory.length >= 2 ? regularOnlyHistory : history;
   const scrubSession = scrub ? getMarketSession(stock.category, { now: new Date(scrub.t), symbol: stock.symbol }) : null;
   const dataInterval = describeDataInterval(displayedHistory);
+
+  // Chart tools (spec section 9) — every one is off by default and only
+  // ever drawn from real data already known elsewhere in the app (never a
+  // fabricated series): this instrument's own displayed price points, the
+  // user's real holding/orders, or a plain calculation over those.
+  const openOrdersForSymbol = priceRules.filter(
+    (r) => r.symbol === stock.symbol && (r.status === "waiting" || r.status === "triggered"),
+  );
+  const chartToolsAvailability = {
+    prevClose: range === "1D",
+    avgCost: !!holding,
+    myOrders: openOrdersForSymbol.length > 0,
+    movingAverages: range !== "1D" && range !== "1W",
+  };
+  const referenceLines: { value: number; color: string; label: string }[] = [];
+  if (tools.prevClose && chartToolsAvailability.prevClose) {
+    referenceLines.push({ value: stock.prevClose, color: "var(--color-ink-faint)", label: t("chart.toolPrevClose") });
+  }
+  if (tools.avgCost && holding) {
+    referenceLines.push({ value: holding.avgCost, color: "var(--color-brand-light)", label: t("chart.toolAvgCost") });
+  }
+  if (tools.myOrders) {
+    for (const order of openOrdersForSymbol) {
+      referenceLines.push({
+        value: order.targetPrice,
+        color: order.side === "buy" ? "var(--color-up)" : "var(--color-down)",
+        label: `${order.side === "buy" ? t("stockDetail.buy") : t("stockDetail.sell")} ${formatDisplay(order.targetPrice, { precise: true })}`,
+      });
+    }
+  }
+  const movingAverages =
+    tools.movingAverages && chartToolsAvailability.movingAverages
+      ? [
+          { color: "var(--color-brand-light)", points: computeSma(displayedHistory, 20) },
+          { color: "var(--color-warn)", points: computeSma(displayedHistory, 50) },
+        ].filter((m) => m.points.length > 0)
+      : [];
+  const rsiPoints = tools.rsi ? computeRsi(displayedHistory, 14) : [];
 
   const stats: { label: string; value: string; definition: string }[] = [
     { label: t("stockDetail.marketCap"), value: formatDisplay(stock.marketCap, { compact: true }), definition: t("glossary.marketCap") },
@@ -216,8 +259,20 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
             range={range}
             sessionCategory={stock.category}
             sessionSymbol={stock.symbol}
+            showHighLow={tools.highLow}
+            referenceLines={referenceLines}
+            movingAverages={movingAverages}
           />
         </div>
+
+        {rsiPoints.length > 0 && displayedHistory.length > 0 && (
+          <div className="mt-2 px-1">
+            <RsiPanel
+              timeRange={{ start: displayedHistory[0].t, end: displayedHistory[displayedHistory.length - 1].t }}
+              rsi={rsiPoints}
+            />
+          </div>
+        )}
 
         <div className="mt-4">
           <RangeTabs value={range} onChange={setRange} positive={positive} />
@@ -227,7 +282,17 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
           {dataInterval && (
             <span className="text-[11px] text-ink-faint">{t(dataInterval.key, dataInterval.vars)}</span>
           )}
-          {canToggleExtendedHours && (
+          <button
+            onClick={() => setToolsOpen(true)}
+            className="flex items-center gap-1 text-[11px] font-semibold text-brand-light hover:brightness-125 cursor-pointer"
+          >
+            <SlidersHorizontal size={12} />
+            {t("chart.toolsButton")}
+          </button>
+        </div>
+
+        {canToggleExtendedHours && (
+          <div className="mt-2 flex items-center justify-between gap-2">
             <label className="flex items-center gap-1.5 text-[11px] font-medium text-ink-faint">
               <input
                 type="checkbox"
@@ -237,8 +302,8 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
               />
               {t("chart.showExtendedHours")}
             </label>
-          )}
-        </div>
+          </div>
+        )}
 
         {canToggleExtendedHours && showExtendedHours && (
           <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-ink-faint">
@@ -454,6 +519,14 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
           />
         )}
       </AnimatePresence>
+      {toolsOpen && (
+        <ChartToolsSheet
+          state={tools}
+          onChange={setTools}
+          onClose={() => setToolsOpen(false)}
+          availability={chartToolsAvailability}
+        />
+      )}
     </div>
   );
 }

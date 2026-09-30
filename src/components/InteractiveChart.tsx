@@ -11,6 +11,17 @@ import { useLocale } from "../context/LocaleContext";
 import { getMarketSession, type SessionStatus } from "../lib/marketSession";
 import { pickAxisIndices, formatAxisTick } from "../lib/chartAxis";
 
+export interface ChartReferenceLine {
+  value: number;
+  color: string;
+  label: string;
+}
+
+export interface ChartMovingAverage {
+  color: string;
+  points: { t: number; value: number }[];
+}
+
 interface InteractiveChartProps {
   data: PricePoint[];
   positive: boolean;
@@ -21,6 +32,12 @@ interface InteractiveChartProps {
   /** Enables per-point pre-market/regular/after-hours background shading for range === "1D" — every point is classified by the session that applied AT ITS OWN timestamp, never "today's" session. Omit (or pass "crypto") to skip shading — crypto has no sessions. */
   sessionCategory?: AssetCategory;
   sessionSymbol?: string;
+  /** Draws a dashed line at the highest/lowest displayed price, each labeled with its value — the caller decides the scope wording (e.g. "Highest displayed price" for sampled data). */
+  showHighLow?: boolean;
+  /** Previous close / my average cost / my order levels — all rendered the same way (a labeled horizontal dashed line), just with different colors and labels supplied by the caller. Values outside the plotted price range still get drawn (the chart's own scale expands to fit them) rather than clipped off-screen. */
+  referenceLines?: ChartReferenceLine[];
+  /** 20-day/50-day SMA overlays — each point plotted at its own timestamp on the same x scale as the main series, not re-indexed positionally. */
+  movingAverages?: ChartMovingAverage[];
 }
 
 const SESSION_BAND_FILL: Partial<Record<SessionStatus, string>> = {
@@ -51,6 +68,9 @@ export function InteractiveChart({
   range,
   sessionCategory,
   sessionSymbol,
+  showHighLow,
+  referenceLines,
+  movingAverages,
 }: InteractiveChartProps) {
   const { t, locale } = useLocale();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -73,20 +93,47 @@ export function InteractiveChart({
   const axisHeight = showAxis ? 20 : 0;
   const plotHeight = height - axisHeight;
 
-  const { linePath, areaPath, points, min, max, bands, daySeparators, axisTicks } = useMemo(() => {
+  const { linePath, areaPath, points, min, max, bands, daySeparators, axisTicks, highLowMarkers, referenceLineRows, movingAverageLines } = useMemo(() => {
     if (data.length === 0) {
-      return { linePath: "", areaPath: "", points: [] as { x: number; y: number }[], min: 0, max: 0, bands: [], daySeparators: [], axisTicks: [] };
+      return {
+        linePath: "",
+        areaPath: "",
+        points: [] as { x: number; y: number }[],
+        min: 0,
+        max: 0,
+        bands: [],
+        daySeparators: [],
+        axisTicks: [],
+        highLowMarkers: [],
+        referenceLineRows: [],
+        movingAverageLines: [],
+      };
     }
     const prices = data.map((d) => d.price);
-    const min = Math.min(...prices);
-    const max = Math.max(...prices);
+    // A reference line (prev close / avg cost / an order's price) or a
+    // moving-average value can fall outside the plotted series' own
+    // high/low — the scale expands to fit them so nothing is clipped off
+    // the visible chart rather than silently invisible.
+    const overlayValues = [
+      ...(referenceLines ?? []).map((l) => l.value),
+      ...(movingAverages ?? []).flatMap((m) => m.points.map((p) => p.value)),
+    ];
+    const min = Math.min(...prices, ...overlayValues);
+    const max = Math.max(...prices, ...overlayValues);
     const priceRange = max - min || 1;
     const pad = plotHeight * 0.12;
     const usable = plotHeight - pad * 2;
     const stepX = width / (data.length - 1 || 1);
+    const priceToY = (price: number) => pad + usable - ((price - min) / priceRange) * usable;
+    const timeToX = (t: number) => {
+      const t0 = data[0].t;
+      const t1 = data[data.length - 1].t;
+      const frac = t1 === t0 ? 0 : (t - t0) / (t1 - t0);
+      return frac * width;
+    };
     const pts = data.map((d, i) => ({
       x: i * stepX,
-      y: pad + usable - ((d.price - min) / priceRange) * usable,
+      y: priceToY(d.price),
     }));
     const line = buildSmoothPath(pts);
     const area = `${line} L${pts[pts.length - 1].x},${plotHeight} L0,${plotHeight} Z`;
@@ -148,8 +195,22 @@ export function InteractiveChart({
       }
     }
 
-    return { linePath: line, areaPath: area, points: pts, min, max, bands, daySeparators, axisTicks };
-  }, [data, width, plotHeight, range, sessionCategory, sessionSymbol, showAxis, locale]);
+    const highLowMarkers = showHighLow
+      ? [
+          { y: priceToY(max), value: max, anchor: "top" as const },
+          { y: priceToY(min), value: min, anchor: "bottom" as const },
+        ]
+      : [];
+
+    const referenceLineRows = (referenceLines ?? []).map((l) => ({ ...l, y: priceToY(l.value) }));
+
+    const movingAverageLines = (movingAverages ?? []).map((m) => ({
+      color: m.color,
+      path: buildSmoothPath(m.points.map((p) => ({ x: timeToX(p.t), y: priceToY(p.value) }))),
+    }));
+
+    return { linePath: line, areaPath: area, points: pts, min, max, bands, daySeparators, axisTicks, highLowMarkers, referenceLineRows, movingAverageLines };
+  }, [data, width, plotHeight, range, sessionCategory, sessionSymbol, showAxis, locale, showHighLow, referenceLines, movingAverages]);
 
   const updateFromClientX = useCallback(
     (clientX: number) => {
@@ -222,6 +283,29 @@ export function InteractiveChart({
             strokeLinecap="round"
             strokeLinejoin="round"
           />
+          {movingAverageLines.map((m, i) => (
+            <path key={i} d={m.path} fill="none" stroke={m.color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+          ))}
+          {referenceLineRows.map((r, i) => (
+            <g key={i}>
+              <line x1={0} y1={r.y} x2={width} y2={r.y} stroke={r.color} strokeWidth={1} strokeDasharray="4 3" opacity={0.85} />
+              <text x={width - 4} y={r.y - 4} textAnchor="end" fontSize={10} fill={r.color} fontWeight={600}>
+                {r.label}
+              </text>
+            </g>
+          ))}
+          {highLowMarkers.map((m, i) => (
+            <text
+              key={i}
+              x={4}
+              y={m.anchor === "top" ? m.y + 11 : m.y - 4}
+              textAnchor="start"
+              fontSize={10}
+              fill="var(--color-ink-faint)"
+            >
+              {m.value.toFixed(2)}
+            </text>
+          ))}
           {active && (
             <g>
               <line

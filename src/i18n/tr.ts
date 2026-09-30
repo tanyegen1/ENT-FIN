@@ -93,6 +93,40 @@ const tr: Messages = {
     legendAfterHours: "Kapanış sonrası",
     tooltipSessionUnavailable: "Bu nokta için seans bilinmiyor",
     marketClosedBanner: "Piyasa kapalı — son mevcut seans gösteriliyor.",
+
+    toolsButton: "Grafik araçları",
+    toolsSheetTitle: "Grafik araçları",
+    toolsFooterNote: "Bu araçlar fiyat geçmişini anlamak içindir — hiçbiri gelecekteki fiyatları tahmin etmez, alım/satım sinyali üretmez ya da emirlerinin koşullarını etkilemez.",
+    advancedHeading: "Gelişmiş",
+
+    toolHighLow: "Yüksek / düşük",
+    toolHighLowDetail: "Gösterilen en yüksek ve en düşük fiyatları işaretler",
+    toolHighLowInfo: "Şu anda çizilen noktalar arasındaki en yüksek ve en düşük fiyat. Örnek: grafikteki noktalar 224–228 dolar arasındaysa, ikisi de işaretlenir. Sınırlama: bu, gerçekten gösterilen noktaları yansıtır, gerçekleşen her işlemi değil — daha seyrek bir grafik kısa bir sıçramayı kaçırabilir. Kapsam: o an seçili olan aralık ve görünüm (yalnızca normal seans ya da uzatılmış saatler).",
+
+    toolPrevClose: "Önceki kapanış",
+    toolPrevCloseDetail: "Dünkü normal seans kapanışında bir referans çizgisi",
+    toolPrevCloseInfo: "Bu hissenin son normal seansta kapandığı fiyatta bir çizgi. Örnek: dün 224 dolardan kapandıysa ve şimdi 227 dolardan işlem görüyorsa, çizgi ile güncel fiyat arasındaki farkı görürsün. Sınırlama: yalnızca 1 günlük görünümde anlamlıdır. Kapsam: önceki normal seansın resmi kapanışı — asla uzatılmış saatlerdeki bir fiyat değil.",
+    toolPrevCloseUnavailable: "Yalnızca 1 günlük görünümde kullanılabilir",
+
+    toolAvgCost: "Ortalama maliyetim",
+    toolAvgCostDetail: "Bu hisse için ortalama alış fiyatında bir çizgi",
+    toolAvgCostInfo: "Şu anda sahip olduğun hisseler için ödediğin ortalama fiyatta bir çizgi. Örnek: 5 hisseyi 200 dolardan, 5 hisseyi daha 220 dolardan alırsan, bu çizgi 210 dolara yerleşir. Sınırlama: yalnızca gerçekten sahip olduğun hisseleri sayar — bekleyen, gerçekleşmemiş bir emirden asla değil. Kapsam: mevcut pozisyonunun her gerçekleşmeden sonra yeniden hesaplanan ortalama maliyeti.",
+    toolAvgCostUnavailable: "Bu hisseden hiç sahip değilsin",
+
+    toolMyOrders: "Emirlerim",
+    toolMyOrdersDetail: "Açık fiyat kuralı seviyelerinde etiketli çizgiler",
+    toolMyOrdersInfo: "Bu hisse için açık alış/satış fiyat kurallarının fiyat(lar)ında, gerçekleşmiş bir işlemden ayrı olarak çizilen etiketli çizgiler. Örnek: 220 dolardan alış limit emri, gerçekleşene, süresi dolana ya da iptal edilene kadar 220 dolarda etiketli bir çizgi olarak görünür. Sınırlama: bu yalnızca emirlerini gösterir — bir çizgiyi sürüklemek asla bir emri değiştirmez; düzenleme her zaman emrin kendi gözden geçirme ekranından yapılır. Kapsam: bu hisse için şu an açık (bekleyen/tetiklenmiş) fiyat kuralların.",
+    toolMyOrdersUnavailable: "Bu hisse için açık emrin yok",
+
+    toolMovingAverages: "Hareketli ortalamalar (20/50)",
+    toolMovingAveragesDetail: "Son kapanış fiyatlarını yumuşatan çizgiler",
+    toolMovingAveragesInfo: "Bu grafiğin kendi kapanış fiyatlarının 20 ve 50 periyotluk basit hareketli ortalaması — her nokta, gösterilen son 20 (ya da 50) noktanın ortalamasıdır, mutlaka takvim günü değil. Örnek: fiyatın altındaki yükselen bir çizgi genellikle yakın zamandaki yukarı yönlü eğilimi yansıtır. Sınırlama: yeterli geçmiş (20/50 nokta) oluşana kadar hiçbir şey çizilmez, gün içi bir görünümde \"periyot\" gün değil, çubuk anlamına gelir. Kapsam: 20 gün içi çubuğun 20 gün olarak yanlış etiketlenmemesi için yalnızca günlük aralıklı görünümlerde (1 ay ve üzeri) gösterilir.",
+    toolMovingAveragesUnavailable: "Yalnızca 1 aylık görünüm ve üzerinde kullanılabilir",
+
+    toolRsi: "RSI (14)",
+    toolRsiDetail: "Wilder'ın 14 periyotluk formülüyle 0–100 arası bir momentum okuması",
+    toolRsiInfo: "Göreceli Güç Endeksi, Wilder'ın standart 14 periyotluk formülünü kullanarak fiyatın son zamanlarda ne kadar hızlı ve ne kadar hareket ettiğini 0 ile 100 arasında ölçer. Örnek: bazı okuyucular 30 ve 70 çizgilerini izler — 70'in üzeri son alımların özellikle güçlü olduğunu, 30'un altı son satışların özellikle güçlü olduğunu düşündürür — ama hiçbiri otomatik bir sinyal değildir, güçlü bir trend RSI'ı uzun süre bir uç noktada tutabilir. Sınırlama: başlayabilmesi için en az 15 nokta geçmiş gerekir. Kapsam: bu grafiğin şu an gösterdiği kapanışlardan, seçili aralık ve aralıkta hesaplanır.",
+    rsiLabel: "RSI (14)",
   },
   nav: {
     home: "Ana Sayfa",

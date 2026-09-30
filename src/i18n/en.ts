@@ -91,6 +91,40 @@ const en = {
     legendAfterHours: "After-hours",
     tooltipSessionUnavailable: "Session unavailable for this point",
     marketClosedBanner: "Market closed — showing the last available session.",
+
+    toolsButton: "Chart tools",
+    toolsSheetTitle: "Chart tools",
+    toolsFooterNote: "These tools are for understanding price history — none of them predict future prices, generate buy/sell signals, or affect your orders' terms.",
+    advancedHeading: "Advanced",
+
+    toolHighLow: "High / low",
+    toolHighLowDetail: "Marks the highest and lowest prices shown",
+    toolHighLowInfo: "The highest and lowest prices among the points currently plotted. Example: if the chart's points ranged from $224 to $228, both would be marked. Limitation: this reflects the points actually shown, not necessarily every trade that happened — a sparser chart can miss a brief spike. Scope: whatever range and view (regular-only or extended) is currently selected.",
+
+    toolPrevClose: "Previous close",
+    toolPrevCloseDetail: "A reference line at yesterday's regular-session close",
+    toolPrevCloseInfo: "A line at the price this stock closed at during its last regular session. Example: if it closed at $224 yesterday and trades at $227 now, you'd see the gap between the line and today's price. Limitation: only meaningful for the 1-day view. Scope: the previous regular session's official close — never an extended-hours price.",
+    toolPrevCloseUnavailable: "Only available on the 1-day view",
+
+    toolAvgCost: "My average cost",
+    toolAvgCostDetail: "A line at your average purchase price for this stock",
+    toolAvgCostInfo: "A line at the average price you've paid for the shares you currently own. Example: buying 5 shares at $200 and 5 more at $220 puts this line at $210. Limitation: only counts shares you actually own — never shares from a pending, unfilled order. Scope: your current holding's average cost, recalculated after every fill.",
+    toolAvgCostUnavailable: "You don't own any shares of this stock",
+
+    toolMyOrders: "My orders",
+    toolMyOrdersDetail: "Labeled lines at your open price-rule levels",
+    toolMyOrdersInfo: "Labeled lines at the price(s) of your open buy/sell price rules for this stock, drawn separately from any already-filled trade. Example: a limit order to buy at $220 shows as a labeled line at $220 until it fills, expires, or you cancel it. Limitation: this only displays your orders — dragging a line never changes one; editing always goes through the order's own review screen. Scope: your currently open (waiting/triggered) price rules for this stock.",
+    toolMyOrdersUnavailable: "You don't have any open orders for this stock",
+
+    toolMovingAverages: "Moving averages (20/50)",
+    toolMovingAveragesDetail: "Smoothed lines averaging recent closing prices",
+    toolMovingAveragesInfo: "The 20-period and 50-period simple moving average of this chart's own closing prices — each point averages the last 20 (or 50) points shown, not necessarily calendar days. Example: a rising line below the price often reflects a recent upward trend. Limitation: nothing is drawn until enough history exists (20/50 points), and on an intraday view \"period\" means bars, not days. Scope: shown only on daily-interval views (1 month and longer) so 20 intraday bars are never mislabeled as 20 days.",
+    toolMovingAveragesUnavailable: "Only available on the 1-month view and longer",
+
+    toolRsi: "RSI (14)",
+    toolRsiDetail: "A 0–100 momentum reading using Wilder's 14-period formula",
+    toolRsiInfo: "The Relative Strength Index measures how fast and how much price has recently moved, using Wilder's standard 14-period formula, scaled from 0 to 100. Example: some readers watch the 30 and 70 lines — above 70 suggests recent buying has been especially strong, below 30 suggests recent selling has been especially strong — but neither is an automatic signal, and a strong trend can hold RSI near an extreme for a long time. Limitation: needs at least 15 points of history before it can start. Scope: calculated from this chart's own displayed closes, over whichever range and interval is currently selected.",
+    rsiLabel: "RSI (14)",
   },
   nav: {
     home: "Home",
