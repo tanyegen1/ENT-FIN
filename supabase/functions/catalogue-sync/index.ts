@@ -21,10 +21,49 @@
 import { handleCorsPreflight, jsonResponse } from "../_shared/cors.ts";
 import { createAdminClient, getMassiveApiKey } from "../_shared/supabaseAdmin.ts";
 import { fetchTickersPage, MassiveApiError } from "../_shared/massiveClient.ts";
+import type { MassiveTickersPage } from "../_shared/types.ts";
 import { normalizeTickerRef } from "../_shared/classify.ts";
 import { advanceAfterPage, dedupeByProviderId, initialResumeState, isSyncComplete, type ResumeState } from "../_shared/syncPlan.ts";
+import { backoffDelayMs } from "../_shared/backoff.ts";
 
 const TIME_BUDGET_MS = 45_000;
+const MAX_RATE_LIMIT_RETRIES = 6;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Fetches one page, retrying with exponential backoff on a 429 from Massive
+ * (spec section 7) — a free/low tier can rate-limit after just a handful of
+ * calls. Returns `{ timedOut: true }` instead of throwing when the time
+ * budget would be exceeded mid-backoff, so the caller can save progress as
+ * 'partial' (never 'failed') and let the next invocation continue.
+ */
+async function fetchPageWithRetry(
+  apiKey: string,
+  params: { market: string; type: string; exchange: string; active: boolean; limit: number },
+  cursor: string | undefined,
+  startedAt: number,
+): Promise<{ timedOut: false; page: MassiveTickersPage } | { timedOut: true }> {
+  let attempt = 0;
+  while (true) {
+    try {
+      const page = await fetchTickersPage({ apiKey }, params, cursor);
+      return { timedOut: false, page };
+    } catch (err) {
+      if (!(err instanceof MassiveApiError) || err.kind !== "rate_limited" || attempt >= MAX_RATE_LIMIT_RETRIES) {
+        throw err;
+      }
+      const delay = backoffDelayMs(attempt);
+      if (Date.now() - startedAt + delay > TIME_BUDGET_MS) {
+        return { timedOut: true };
+      }
+      await sleep(delay);
+      attempt++;
+    }
+  }
+}
 
 Deno.serve(async (req: Request) => {
   const preflight = handleCorsPreflight(req);
@@ -89,32 +128,40 @@ Deno.serve(async (req: Request) => {
   let pagesThisInvocation = 0;
   let seenThisInvocation = 0;
 
+  async function savePartial(message: string) {
+    await supabase
+      .from("instrument_sync_runs")
+      .update({
+        status: "partial",
+        resume_state: resumeState,
+        pages_fetched: (run.pages_fetched ?? 0) + pagesThisInvocation,
+        instruments_seen: (run.instruments_seen ?? 0) + seenThisInvocation,
+      })
+      .eq("id", run.id);
+    return jsonResponse({ ok: true, status: "partial", message, runId: run.id });
+  }
+
   try {
     while (!isSyncComplete(resumeState)) {
       if (Date.now() - startedAt > TIME_BUDGET_MS) {
-        await supabase
-          .from("instrument_sync_runs")
-          .update({
-            status: "partial",
-            resume_state: resumeState,
-            pages_fetched: (run.pages_fetched ?? 0) + pagesThisInvocation,
-            instruments_seen: (run.instruments_seen ?? 0) + seenThisInvocation,
-          })
-          .eq("id", run.id);
-        return jsonResponse({
-          ok: true,
-          status: "partial",
-          message: "Time budget reached mid-sync; will resume on the next invocation (trigger again, or via the scheduled cron job).",
-          runId: run.id,
-        });
+        return await savePartial(
+          "Time budget reached mid-sync; will resume on the next invocation (trigger again, or via the scheduled cron job).",
+        );
       }
 
       const combo = resumeState.currentCombo!;
-      const page = await fetchTickersPage(
-        { apiKey },
+      const result = await fetchPageWithRetry(
+        apiKey,
         { market: "stocks", type: combo.type, exchange: combo.exchange, active: true, limit: 1000 },
         resumeState.currentCursor ?? undefined,
+        startedAt,
       );
+      if (result.timedOut) {
+        return await savePartial(
+          "Rate-limited by Massive and the time budget ran out while waiting it out; will resume on the next invocation — re-run this same request.",
+        );
+      }
+      const page = result.page;
       pagesThisInvocation++;
 
       const rows = dedupeByProviderId(
