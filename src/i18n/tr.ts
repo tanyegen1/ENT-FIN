@@ -1069,6 +1069,11 @@ const tr: Messages = {
     includeExtendedHoursDetail: "Bu emrin yalnızca normal seansta değil, açılış öncesi ve kapanış sonrasında da gerçekleşmeyi denemesini sağlar. O saatlerde daha az alıcı ve satıcı işlem yaptığı için makas genelde daha geniş, gerçekleşme ise daha belirsizdir.",
     sessionUnavailable: "bilinmiyor",
   },
+  pendingOrders: {
+    heading: "Bekleyen emirler",
+    progressBuy: "{{quantity}} hissenin {{filled}} tanesi alındı • {{remaining}} kaldı",
+    progressSell: "{{quantity}} hissenin {{filled}} tanesi satıldı • {{remaining}} kaldı",
+  },
   lessons: {
     pageTitle: "Rehberli alıştırma",
     pageSubtitle: "Fiyat kurallarının nasıl çalıştığına dair üç kısa ders. İstediğin zaman atla veya geri dön — bunlar deneme hesabını etkilemez.",

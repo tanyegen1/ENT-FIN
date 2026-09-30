@@ -14,6 +14,7 @@ import { useCurrency } from "../context/CurrencyContext";
 import { getLiveStock, useLiveQuotes } from "../data/liveQuotes";
 import { getStock } from "../data/stocks";
 import { formatShares } from "../lib/format";
+import { describeRuleSummary } from "../lib/priceRuleDescriptions";
 import type { PriceRuleOrder, PriceRuleStatus } from "../types";
 
 const STATUS_LABEL_KEY: Record<PriceRuleStatus, string> = {
@@ -97,26 +98,7 @@ export function PriceRulesPage() {
                   {stock && <StockLogo symbol={stock.symbol} name={stock.name} fallbackColor={stock.color} size={32} />}
                   <div className="min-w-0">
                     <div className="truncate text-[14px] font-semibold text-ink">{order.symbol}</div>
-                    <div className="truncate text-[12px] text-ink-faint">
-                      {order.orderType === "market"
-                        ? t(order.side === "buy" ? "priceRules.marketBuySummary" : "priceRules.marketSellSummary", {
-                            symbol: order.symbol,
-                            quantity: order.quantity,
-                            sharesWord: t("priceRules.sentenceSharesWord"),
-                          })
-                        : t("priceRules.sentenceTemplate", {
-                            symbol: order.symbol,
-                            condition: t(
-                              order.orderType === "buy-limit" || order.orderType === "sell-stop"
-                                ? "priceRules.sentenceFallsTo"
-                                : "priceRules.sentenceRisesTo",
-                            ),
-                            price: formatDisplay(order.targetPrice, { precise: true }),
-                            quantity: order.quantity,
-                            action: t(order.side === "buy" ? "priceRules.sentenceBuy" : "priceRules.sentenceSell"),
-                            sharesWord: t("priceRules.sentenceSharesWord"),
-                          })}
-                    </div>
+                    <div className="truncate text-[12px] text-ink-faint">{describeRuleSummary(order, t, formatDisplay)}</div>
                   </div>
                 </div>
                 <span className={clsx("shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold", STATUS_STYLE[order.status])}>

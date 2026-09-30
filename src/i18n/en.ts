@@ -1068,6 +1068,11 @@ const en = {
     includeExtendedHoursDetail: "Lets this order also try to fill during pre-market and after-hours, not just the regular session. Fewer buyers and sellers trade then, so spreads are often wider and fills less certain.",
     sessionUnavailable: "unavailable",
   },
+  pendingOrders: {
+    heading: "Pending orders",
+    progressBuy: "{{filled}} of {{quantity}} shares purchased • {{remaining}} remaining",
+    progressSell: "{{filled}} of {{quantity}} shares sold • {{remaining}} remaining",
+  },
   lessons: {
     pageTitle: "Guided practice",
     pageSubtitle: "Three short lessons on how price rules work. Skip or come back anytime — these don't affect your practice account.",

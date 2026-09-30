@@ -23,6 +23,7 @@ import { NextStepCard } from "../components/NextStepCard";
 import { RecentActivityCard } from "../components/RecentActivityCard";
 import { SpotlightCarousel } from "../components/SpotlightCarousel";
 import { MarketStatusPill } from "../components/MarketStatusPill";
+import { PendingOrdersSection } from "../components/PendingOrdersSection";
 import type { PricePoint, Range } from "../types";
 
 interface ActionButtonProps {
@@ -258,6 +259,8 @@ export function Home() {
           <RecentActivityCard key="recent-activity" item={latestActivity} />
         )}
       </AnimatePresence>
+
+      <PendingOrdersSection className="mt-6" />
 
       <SpotlightCarousel />
 

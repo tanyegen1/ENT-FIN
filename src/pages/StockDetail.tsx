@@ -19,6 +19,7 @@ import { PriceAlertSheet } from "../components/PriceAlertSheet";
 import { PriceRuleSheet } from "../components/PriceRuleSheet";
 import { LiveDot } from "../components/LiveDot";
 import { MarketStatusPill } from "../components/MarketStatusPill";
+import { PendingOrdersSection } from "../components/PendingOrdersSection";
 import { StockLogo } from "../components/StockLogo";
 import { InfoTip } from "../components/InfoTip";
 import { InsightGlossary } from "../components/InsightGlossary";
@@ -292,6 +293,8 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
           <Bell size={14} />
           {t("priceAlerts.createCta")}
         </motion.button>
+
+        <PendingOrdersSection symbol={stock.symbol} className="mt-6" noPadding />
 
         <div className="mt-8">
           <ComparisonSection stock={stock} range={range} />
