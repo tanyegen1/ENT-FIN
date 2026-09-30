@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { X, Minus, Plus, FlaskConical } from "lucide-react";
 import clsx from "clsx";
-import type { PriceRuleDuration, PriceRuleOrder, PriceRuleOrderType, PriceRuleSessionScope, Stock } from "../types";
+import type { OrderableStock, PriceRuleDuration, PriceRuleOrder, PriceRuleOrderType, PriceRuleSessionScope } from "../types";
 import { usePortfolio } from "../context/PortfolioContext";
 import { usePriceAlerts } from "../context/PriceAlertsContext";
 import { useLocale } from "../context/LocaleContext";
@@ -90,7 +90,7 @@ function makeDraftOrder(base: {
 }
 
 interface PriceRuleSheetProps {
-  stock: Stock;
+  stock: OrderableStock;
   initialSide: Side;
   onClose: () => void;
   /** "Now" always reuses the existing instant market order flow — this sheet never duplicates it. */

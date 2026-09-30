@@ -1,10 +1,17 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search as SearchIcon, X } from "lucide-react";
 import { useLocale } from "../context/LocaleContext";
 import { usePortfolio } from "../context/PortfolioContext";
 import { STOCKS, searchStocks, stocksByCategory, suggestStocks } from "../data/stocks";
 import { StockRow } from "../components/StockRow";
-import type { AssetCategory, Stock } from "../types";
+import { CatalogueStockRow } from "../components/CatalogueStockRow";
+import {
+  fetchCatalogueQuotes,
+  isCatalogueConfigured,
+  searchCatalogue,
+  type CatalogueExchangeFilter,
+} from "../data/catalogService";
+import type { AssetCategory, CatalogueInstrument, CatalogueQuote, Stock } from "../types";
 
 const RECENT_KEY = "arvo.recentSearches";
 const MAX_RECENT = 8;
@@ -32,16 +39,82 @@ function saveRecent(symbols: string[]) {
 
 const CATEGORY_ORDER: AssetCategory[] = ["stock", "fund", "crypto"];
 
+const CATALOGUE_PAGE_LIMIT = 20;
+const EXCHANGE_FILTERS: CatalogueExchangeFilter[] = ["ALL", "XNAS", "XNYS"];
+
+/**
+ * Server-side, debounced Nasdaq/NYSE catalogue search (spec section 4) —
+ * resets to the first page on every new query/exchange filter. Quotes are
+ * fetched once per loaded page, in one batch call, for exactly the rows
+ * about to render — never one request per instrument, and never for
+ * instruments not currently visible.
+ */
+function useCatalogueSearch(query: string, exchange: CatalogueExchangeFilter) {
+  const [instruments, setInstruments] = useState<CatalogueInstrument[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [quotes, setQuotes] = useState<Record<string, CatalogueQuote | null>>({});
+
+  useEffect(() => {
+    if (!isCatalogueConfigured || !query.trim()) {
+      setInstruments([]);
+      setHasMore(false);
+      setOffset(0);
+      return;
+    }
+    let cancelled = false;
+    const handle = setTimeout(async () => {
+      const result = await searchCatalogue(query, exchange, CATALOGUE_PAGE_LIMIT, 0);
+      if (cancelled || !result) return;
+      setInstruments(result.instruments);
+      setHasMore(result.hasMore);
+      setOffset(result.instruments.length);
+      if (result.instruments.length > 0) {
+        const q = await fetchCatalogueQuotes(result.instruments.map((i) => i.ticker));
+        if (!cancelled) setQuotes((prev) => ({ ...prev, ...q }));
+      }
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [query, exchange]);
+
+  const loadMore = async () => {
+    const result = await searchCatalogue(query, exchange, CATALOGUE_PAGE_LIMIT, offset);
+    if (!result) return;
+    setInstruments((prev) => [...prev, ...result.instruments]);
+    setHasMore(result.hasMore);
+    setOffset((prev) => prev + result.instruments.length);
+    if (result.instruments.length > 0) {
+      const q = await fetchCatalogueQuotes(result.instruments.map((i) => i.ticker));
+      setQuotes((prev) => ({ ...prev, ...q }));
+    }
+  };
+
+  return { instruments, hasMore, quotes, loadMore };
+}
+
 export function Search() {
   const { t } = useLocale();
   const { watchlist } = usePortfolio();
   const [query, setQuery] = useState("");
   const [recent, setRecent] = useState<string[]>(loadRecent);
+  const [exchangeFilter, setExchangeFilter] = useState<CatalogueExchangeFilter>("ALL");
 
   const results = useMemo(() => (query.trim() ? searchStocks(query) : []), [query]);
   const suggestions = useMemo(
     () => (query.trim() && results.length === 0 ? suggestStocks(query) : []),
     [query, results],
+  );
+
+  const catalogue = useCatalogueSearch(query, exchangeFilter);
+  const localSymbols = useMemo(() => new Set(results.map((r) => r.symbol)), [results]);
+  // Never show the same instrument twice — the curated STOCKS entry (with
+  // its richer authored content) takes priority over its catalogue row.
+  const catalogueResults = useMemo(
+    () => catalogue.instruments.filter((i) => !localSymbols.has(i.ticker)),
+    [catalogue.instruments, localSymbols],
   );
 
   const recordRecent = (symbol: string) => {
@@ -90,6 +163,27 @@ export function Search() {
             </button>
           )}
         </div>
+
+        {isCatalogueConfigured && (
+          <div className="mt-3 flex items-center gap-1.5">
+            {EXCHANGE_FILTERS.map((ex) => {
+              const label =
+                ex === "ALL" ? t("search.catalogueFilterAll") : ex === "XNAS" ? t("search.catalogueFilterNasdaq") : t("search.catalogueFilterNyse");
+              const active = exchangeFilter === ex;
+              return (
+                <button
+                  key={ex}
+                  onClick={() => setExchangeFilter(ex)}
+                  className={`rounded-full px-3 py-1 text-[12px] font-semibold cursor-pointer transition-colors ${
+                    active ? "bg-brand-soft text-brand-light" : "bg-surface-2 text-ink-faint hover:text-ink-dim"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {query.trim() ? (
@@ -130,6 +224,28 @@ export function Search() {
                 </div>
               )}
             </div>
+          )}
+
+          {catalogueResults.length > 0 && (
+            <section className="mt-6">
+              <h2 className="px-2 pb-1 text-sm font-medium text-ink-faint">{t("search.catalogueHeading")}</h2>
+              {catalogueResults.map((instrument) => (
+                <CatalogueStockRow
+                  key={instrument.id}
+                  instrument={instrument}
+                  quote={catalogue.quotes[instrument.ticker]}
+                  onClick={() => recordRecent(instrument.ticker)}
+                />
+              ))}
+              {catalogue.hasMore && (
+                <button
+                  onClick={catalogue.loadMore}
+                  className="mx-2 mt-2 rounded-full border border-dashed border-border px-4 py-2 text-[13px] font-semibold text-ink-dim hover:bg-surface-2 cursor-pointer"
+                >
+                  {t("search.catalogueLoadMore")}
+                </button>
+              )}
+            </section>
           )}
         </div>
       ) : (

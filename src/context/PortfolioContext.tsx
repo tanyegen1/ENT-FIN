@@ -21,6 +21,7 @@ import type {
 import { EMPTY_START_CASH, INITIAL_CASH, INITIAL_HOLDINGS, INITIAL_WATCHLIST } from "../data/portfolio";
 import { getStock } from "../data/stocks";
 import { getLiveStock, startLiveQuotes, useLiveQuotes } from "../data/liveQuotes";
+import { getCatalogueDisplayPrice, getCatalogueExecutionPrice, useCatalogueRegistryVersion } from "../data/catalogueRegistry";
 import { useAuth } from "./AuthContext";
 import { useOnboarding } from "./OnboardingContext";
 import { useLocale } from "./LocaleContext";
@@ -173,14 +174,24 @@ function resolveExpiry(duration: PriceRuleDuration, sessionScope: PriceRuleSessi
 
 function referencePriceFor(symbol: string): number | null {
   const stock = getLiveStock(symbol) ?? getStock(symbol);
-  return stock ? stock.price : null;
+  if (stock) return stock.price;
+  // Not one of the curated stocks — a Nasdaq/NYSE catalogue instrument only
+  // ever supplies a reference price once it's explicitly marked
+  // trading_eligible by the catalogue backend AND has a non-stale quote on
+  // file (see catalogueRegistry.ts); every other case returns null, which
+  // callers already treat as "no execution," never $0 or a guess.
+  return getCatalogueExecutionPrice(symbol);
 }
 
-/** Is an ordinary instant market buy/sell allowed for this symbol right now? Regular session for equities/funds, always true for crypto (no sessions), never during a halt or an out-of-coverage/unavailable calendar. */
+/** Is an ordinary instant market buy/sell allowed for this symbol right now? Regular session for equities/funds, always true for crypto (no sessions), never during a halt or an out-of-coverage/unavailable calendar. Catalogue instruments additionally require the backend's own trading_eligible flag and a fresh quote — catalogue presence alone never implies eligibility (spec section 4). */
 function instantExecutionEligible(symbol: string): boolean {
   const stock = getLiveStock(symbol) ?? getStock(symbol);
-  if (!stock) return false;
-  const session = getMarketSession(stock.category, { symbol });
+  if (stock) {
+    const session = getMarketSession(stock.category, { symbol });
+    return session.status === "regular" || session.status === "open";
+  }
+  if (getCatalogueExecutionPrice(symbol) === null) return false;
+  const session = getMarketSession("stock", { symbol });
   return session.status === "regular" || session.status === "open";
 }
 
@@ -198,6 +209,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   const skipNextSaveRef = useRef(false);
   const processingRef = useRef(false);
   const liveQuotes = useLiveQuotes();
+  const catalogueVersion = useCatalogueRegistryVersion();
 
   useEffect(() => {
     startLiveQuotes();
@@ -438,10 +450,17 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     () =>
       state.holdings.reduce((sum, h) => {
         const stock = getLiveStock(h.symbol) ?? getStock(h.symbol);
-        return sum + (stock ? stock.price * h.shares : 0);
+        if (stock) return sum + stock.price * h.shares;
+        // Not a curated symbol — use whatever catalogue price is currently
+        // registered (from the last time this session viewed that
+        // instrument). Contributes 0 only when truly never fetched, same
+        // honest "unknown, not zero-valued" treatment as everywhere else —
+        // never a fabricated or stale-carried-forward price.
+        const catalogueDisplayPrice = getCatalogueDisplayPrice(h.symbol);
+        return sum + (catalogueDisplayPrice ?? 0) * h.shares;
       }, 0),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- liveQuotes triggers recompute on each poll
-    [state.holdings, liveQuotes],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- liveQuotes/catalogueVersion trigger recompute on each update
+    [state.holdings, liveQuotes, catalogueVersion],
   );
 
   const totalValue = equityValue + state.cash;

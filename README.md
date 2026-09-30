@@ -120,12 +120,111 @@ stay on the synthetic walk — fetching real history for every row in a list
 at once isn't a good use of a free API's rate limit, and those charts are
 illustrative rather than the ones a user is reading closely.
 
+## Nasdaq & NYSE catalogue (full stock universe)
+
+Beyond the 19 curated stocks/ETFs in `src/data/stocks.ts`, the app can search
+and open a page for **any active common stock or listed ADR on Nasdaq or
+NYSE** — not an index like the Nasdaq-100 or S&P 500, the full exchange
+universe. This is a separate backend from the Live data section above: it
+runs as Supabase Edge Functions (`supabase/functions/`) calling
+[Massive](https://massive.com) (Polygon.io's 2026 rebrand; existing Polygon
+API keys still work) for instrument reference data, quotes, historical bars,
+and company branding.
+
+**Why a backend at all, instead of calling Massive directly from the
+browser like Finnhub above:** Massive's terms (like most market-data
+providers) don't permit exposing the API key client-side, and a full
+Nasdaq+NYSE catalogue import has to paginate through the entire reference
+data set and merge it safely into a shared database — neither fits a
+key-in-the-browser, no-server model.
+
+### What works without any setup
+
+Nothing here is required — with no Supabase project configured (or one
+configured but without this backend set up), the app behaves exactly as
+before: search and stock pages only cover the 19 curated symbols, and no
+catalogue UI (the Nasdaq/NYSE exchange filter, catalogue search results
+section) appears at all.
+
+### Setup
+
+1. Have a Supabase project already set up (see "Accounts & saved data"
+   above) — the catalogue reuses it rather than needing a second one.
+2. **Run the schema**: the `supabase/schema.sql` file now also creates the
+   `instruments` / `instruments_staging` / `instrument_sync_runs` tables and
+   the `activate_instrument_sync` / `search_instruments` functions. Re-run
+   the whole file in your SQL Editor (every statement is idempotent).
+3. **Deploy the Edge Functions**: `supabase functions deploy catalogue-sync
+   catalogue-search quotes bars instrument-details logo-proxy` (requires the
+   [Supabase CLI](https://supabase.com/docs/guides/cli)). `logo-proxy` must
+   run without JWT verification (it's used directly as an `<img src>`,
+   which can't send an Authorization header) — `supabase/config.toml`
+   sets that, or pass `--no-verify-jwt` explicitly if your CLI version
+   doesn't pick it up.
+4. **Set secrets**: in the Supabase dashboard, Edge Functions -> Manage
+   secrets, set `MASSIVE_API_KEY`, `MASSIVE_QUOTE_DELAY_SECONDS`, and
+   `CATALOGUE_SYNC_SECRET` — see `.env.example` for what each one does.
+5. **Run the first sync**: `POST` to your `catalogue-sync` function URL with
+   header `x-sync-secret: <your secret>`. A full Nasdaq+NYSE import can take
+   more than one invocation's execution-time budget — the function is
+   resumable (it returns `{"status":"partial"}` and picks up where it left
+   off), so call it again (or schedule it) until it returns
+   `{"status":"success"}`. For ongoing freshness, schedule it periodically
+   with `pg_cron`, e.g.:
+   ```sql
+   select cron.schedule(
+     'catalogue-sync-daily', '0 11 * * *',
+     $$select net.http_post(
+       url := 'https://<project-ref>.functions.supabase.co/catalogue-sync',
+       headers := jsonb_build_object('x-sync-secret', '<your secret>')
+     )$$
+   );
+   ```
+6. Restart `npm run dev` (or redeploy) — the catalogue search filter and
+   full-universe search results now appear automatically once
+   `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` are set, no separate client
+   flag needed.
+
+### How the catalogue and the curated list relate
+
+- A search result from the catalogue that's **also** one of the 19 curated
+  symbols is deduplicated in favor of the curated entry (richer authored
+  content — about text, analyst insights, comparisons).
+- A catalogue-only result opens a simpler stock page
+  (`src/pages/CatalogueStockDetail.tsx`) with real price/chart data, but
+  without the curated page's authored "about"/risk copy, analyst outlook,
+  or comparisons — those don't exist for a catalogue instrument and are
+  never fabricated to fill the gap.
+- **Catalogue presence never implies trading eligibility.** Every synced
+  instrument starts with `trading_eligible = false`; the practice Buy/Sell
+  flow (the same `OrderSheet`/`PriceRuleSheet` components the curated list
+  uses — see `src/types.ts`'s `OrderableStock`) only lights up for a
+  catalogue instrument once an operator explicitly flips that column to
+  `true` for it in the database (after confirming its quote data is
+  reliable) — this is a deliberate, conservative default, not a bug.
+- Prices are never polled continuously for the whole catalogue — only
+  fetched on demand (a search result's visible page, an opened stock page)
+  via batched calls, per Massive's rate limits.
+
+### Data rights and coverage — read before enabling this for real users
+
+Whether your specific Massive/Polygon plan permits displaying this data in
+a **public, commercial application** (redistribution, exchange
+entitlements, attribution requirements) is between you and Massive — check
+your plan's terms before enabling this for anyone but yourself. A personal/
+developer-tier key is not automatically a public-display license. This
+repository's code never assumes otherwise: `MASSIVE_QUOTE_DELAY_SECONDS` is
+operator-set specifically so a quote is never labeled "real-time" unless
+your plan actually entitles it to be, and nothing here defaults to treating
+a key as consolidated-tape or extended-hours-entitled without you saying so.
+
 ## Stack
 
 - React 19 + TypeScript, Vite build
 - Tailwind CSS v4 (dark theme via `@theme` tokens in `src/index.css`)
 - `react-router-dom` (`HashRouter`) for routing
 - Supabase (`@supabase/supabase-js`) for auth + Postgres persistence — optional
+- Supabase Edge Functions (Deno) + Massive/Polygon.io for the full Nasdaq/NYSE catalogue — optional, see above
 - `motion` (Framer Motion) for page transitions, shared-layout animations, and springs
 - Hand-rolled SVG charts with pointer-based scrubbing (no charting library)
 - `lucide-react` + `simple-icons` for icons and real brand logos
@@ -141,7 +240,10 @@ illustrative rather than the ones a user is reading closely.
   stats, a plain-English Insights section (with S&P 500 / peer comparison),
   about section, and a Buy/Sell order sheet with a keypad, review step, and
   animated confirmation.
-- **Search** (`/search`) — live filter across mock stocks/ETFs/crypto.
+- **Search** (`/search`) — live filter across mock stocks/ETFs/crypto, plus
+  (when the catalogue backend is configured — see above) server-side search
+  across every active Nasdaq/NYSE common stock and ADR, with an All/Nasdaq/
+  NYSE filter.
 - **Lists** (`/lists`) — watchlist.
 - **Account** (`/account`) — profile, sync status, settings rows, reset
   practice portfolio, unified trade + transfer activity feed.

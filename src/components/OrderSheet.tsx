@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { FlaskConical, TrendingUp, X } from "lucide-react";
 import clsx from "clsx";
-import type { Stock } from "../types";
+import type { OrderableStock } from "../types";
 import { Keypad } from "./Keypad";
 import { SuccessBurst } from "./SuccessBurst";
 import { InfoTip } from "./InfoTip";
@@ -46,7 +46,7 @@ const QUEUE_ERROR_KEY: Record<string, string> = {
 };
 
 interface OrderSheetProps {
-  stock: Stock;
+  stock: OrderableStock;
   initialSide: Side;
   onClose: () => void;
   /** Lets the user escape from a closed/extended-hours instant order into the fuller "Set a price rule" builder — e.g. to pick a limit price the queued-market flow here doesn't ask for. */
@@ -653,7 +653,7 @@ interface SuccessStepProps {
   side: Side;
   shares: number;
   cost: number;
-  stock: Stock;
+  stock: OrderableStock;
   onClose: () => void;
 }
 

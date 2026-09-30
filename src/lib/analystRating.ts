@@ -81,7 +81,7 @@ export interface AnalystProjection {
   projectedValue: number;
 }
 
-export function computeProjection(cost: number, stock: Stock, insight: AnalystInsight): AnalystProjection {
+export function computeProjection(cost: number, stock: { price: number }, insight: AnalystInsight): AnalystProjection {
   const percent = stock.price > 0 ? ((insight.targetAverage - stock.price) / stock.price) * 100 : 0;
   const projectedValue = cost * (1 + percent / 100);
   return { percent, projectedValue };

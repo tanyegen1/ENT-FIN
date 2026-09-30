@@ -1,0 +1,14 @@
+# Per-function Supabase Edge Function settings. Every catalogue function
+# except logo-proxy is called from the client with the Supabase anon key as
+# a Bearer token (see src/data/catalogService.ts) and keeps the project's
+# default JWT verification. logo-proxy is the one exception: it's used
+# directly as an <img src>, which can't attach an Authorization header, so
+# it must run without JWT verification to be usable at all. This is safe
+# specifically because logo-proxy does no write or user-data access and
+# serves only pre-verified public branding assets — see
+# supabase/functions/logo-proxy/index.ts's header comment.
+#
+# If `supabase functions deploy` doesn't pick this up in your CLI version,
+# deploy logo-proxy explicitly with: supabase functions deploy logo-proxy --no-verify-jwt
+[functions.logo-proxy]
+verify_jwt = false

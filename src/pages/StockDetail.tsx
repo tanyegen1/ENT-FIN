@@ -32,6 +32,8 @@ import { formatCompactNumber, formatShares } from "../lib/format";
 import { getMarketSession } from "../lib/marketSession";
 import { describeDataInterval, formatTooltipDateTime } from "../lib/chartAxis";
 import { computeRsi, computeSma } from "../lib/indicators";
+import { isCatalogueConfigured } from "../data/catalogService";
+import { CatalogueStockDetail } from "./CatalogueStockDetail";
 import type { PricePoint, Range } from "../types";
 
 // React Router keeps the same StockDetail instance mounted when the :symbol
@@ -72,7 +74,15 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
     stock && isLiveSymbol(stock.symbol) ? stock.price : undefined,
   );
 
-  if (!stock) return <Navigate to="/search" replace />;
+  // Not one of Arvo's curated stocks — if the Nasdaq/NYSE catalogue backend
+  // is configured, it may still be a real, searchable instrument there
+  // (spec: "every result must open the correct stock page"), just with a
+  // simpler page since none of this app's authored mock content exists for
+  // it. Only redirects to search when the catalogue isn't configured at all.
+  if (!stock) {
+    if (isCatalogueConfigured) return <CatalogueStockDetail symbol={symbol} />;
+    return <Navigate to="/search" replace />;
+  }
 
   const holding = getHolding(stock.symbol);
   const watched = isWatched(stock.symbol);

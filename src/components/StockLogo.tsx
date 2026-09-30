@@ -1,4 +1,4 @@
-import type { ComponentType } from "react";
+import { useState, type ComponentType } from "react";
 import {
   SiApple,
   SiTesla,
@@ -66,11 +66,40 @@ interface StockLogoProps {
   name: string;
   fallbackColor: string;
   size?: number;
+  /**
+   * A verified provider branding URL for a catalogue (Nasdaq/NYSE) instrument
+   * not covered by the curated icon packs below — see
+   * src/data/catalogService.ts's catalogueLogoUrl. Only ever a logo this
+   * app's backend has confirmed belongs to this exact instrument's own
+   * issuer record; never a guess. On any load error (including "no verified
+   * branding on file," which the proxy reports as 404), this falls through
+   * to the same initials placeholder every other unbranded symbol gets.
+   */
+  logoUrl?: string | null;
 }
 
-export function StockLogo({ symbol, name, fallbackColor, size = 40 }: StockLogoProps) {
+export function StockLogo({ symbol, name, fallbackColor, size = 40, logoUrl }: StockLogoProps) {
   const Icon = BRAND_ICONS[symbol];
   const FaIcon = FA_BRAND_ICONS[symbol];
+  const [imgFailed, setImgFailed] = useState(false);
+
+  if (logoUrl && !imgFailed && !Icon && !FaIcon) {
+    return (
+      <div
+        className="flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-white"
+        style={{ width: size, height: size }}
+      >
+        <img
+          src={logoUrl}
+          alt=""
+          width={size}
+          height={size}
+          className="h-full w-full object-contain"
+          onError={() => setImgFailed(true)}
+        />
+      </div>
+    );
+  }
 
   if (Icon) {
     return (

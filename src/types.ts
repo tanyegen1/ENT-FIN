@@ -2,6 +2,67 @@ export type Range = "1D" | "1W" | "1M" | "3M" | "YTD" | "1Y" | "5Y" | "ALL";
 
 export type AssetCategory = "stock" | "fund" | "crypto";
 
+// ---------------------------------------------------------------------------
+// Nasdaq/NYSE catalogue (see supabase/functions/) — a distinct, honest shape
+// from the curated Stock below rather than forcing thousands of arbitrary
+// instruments into fields this app only has authored mock content for
+// (about/sector/aliases/weekHigh52/...). A CatalogueInstrument only ever
+// carries what the provider actually verified or returned; nothing here is
+// ever fabricated to fill a gap.
+// ---------------------------------------------------------------------------
+
+export type CatalogueExchange = "XNAS" | "XNYS" | "XASE" | "ARCX" | "OTHER";
+export type CatalogueSecurityType = "common_stock" | "etf" | "preferred" | "warrant" | "unit" | "right" | "other";
+
+export interface CatalogueInstrument {
+  id: string;
+  ticker: string;
+  name: string;
+  primaryExchange: CatalogueExchange;
+  securityType: CatalogueSecurityType;
+  isAdr: boolean;
+  currency: string;
+  active: boolean;
+  /** Verified provider branding only — never a guessed/searched image. Null means "use the initials placeholder." */
+  logoUrl: string | null;
+  iconUrl: string | null;
+  brandingVerified: boolean;
+  /** Catalogue presence never implies trading eligibility — both flags are independent of whether the instrument is discoverable/has a quote. */
+  tradingEligible: boolean;
+  extendedHoursEligible: boolean;
+}
+
+export type CataloguePriceType = "last_trade" | "regular_close" | "bid" | "ask" | "extended_hours_trade";
+export type CatalogueQuoteFreshness = "real_time" | "delayed" | "end_of_day" | "stale";
+
+export interface CatalogueQuote {
+  instrumentTicker: string;
+  price: number;
+  currency: string;
+  priceType: CataloguePriceType;
+  /** ISO-8601 source timestamp of this specific price — never "now". */
+  sourceTimestamp: string;
+  source: "massive";
+  freshness: CatalogueQuoteFreshness;
+}
+
+export interface CatalogueBar {
+  t: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  adjusted: boolean;
+}
+
+/** Extra company facts from the provider's per-ticker details endpoint (spec section 5's lazy enrichment) — never authored/fabricated, and often null when the provider simply didn't supply a field. */
+export interface CatalogueCompanyInfo {
+  marketCap: number | null;
+  listDate: string | null;
+  homepageUrl: string | null;
+}
+
 export interface Stock {
   symbol: string;
   name: string;
@@ -25,6 +86,24 @@ export interface Stock {
 export interface PricePoint {
   t: number;
   price: number;
+}
+
+/**
+ * The minimal shape the order engine (OrderSheet, PriceRuleSheet, and the
+ * PortfolioContext functions they call) actually needs — every curated
+ * Stock already satisfies this structurally, and a catalogue instrument can
+ * too without inventing values for fields it doesn't have real data for
+ * (marketCap, weekHigh52, about, ...). Keeping this separate from Stock is
+ * what lets catalogue (Nasdaq/NYSE) instruments reuse the exact same
+ * buy/sell/price-rule flow as curated stocks once a specific instrument is
+ * marked trading_eligible, without weakening Stock's guarantees for the
+ * curated list or fabricating data for the catalogue one.
+ */
+export interface OrderableStock {
+  symbol: string;
+  name: string;
+  price: number;
+  category: AssetCategory;
 }
 
 export interface Holding {
