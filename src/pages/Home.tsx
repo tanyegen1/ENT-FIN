@@ -22,6 +22,7 @@ import { LocaleCurrencySheet } from "../components/LocaleCurrencySheet";
 import { NextStepCard } from "../components/NextStepCard";
 import { RecentActivityCard } from "../components/RecentActivityCard";
 import { SpotlightCarousel } from "../components/SpotlightCarousel";
+import { MarketStatusPill } from "../components/MarketStatusPill";
 import type { PricePoint, Range } from "../types";
 
 interface ActionButtonProps {
@@ -101,6 +102,15 @@ export function Home() {
   }, [orders, transfers]);
 
   const isNewWithNoActivity = latestActivity === null;
+
+  // A mixed stock+crypto portfolio gets one status per market rather than a
+  // single badge that would be misleading for whichever asset it doesn't
+  // describe — US equities are always shown since they're this app's
+  // default/primary market even before a first trade.
+  const hasCrypto = useMemo(
+    () => [...holdings.map((h) => h.symbol), ...watchlist].some((s) => getStock(s)?.category === "crypto"),
+    [holdings, watchlist],
+  );
 
   return (
     <div className="pb-8">
@@ -201,6 +211,22 @@ export function Home() {
           <ActionButton icon={ArrowDownToLine} label={t("home.addMoney")} onClick={() => setCashMode("deposit")} />
           <ActionButton icon={TrendingUp} label={t("home.invest")} to="/search" />
           <ActionButton icon={ArrowUpFromLine} label={t("home.withdraw")} onClick={() => setCashMode("withdraw")} />
+        </div>
+
+        {/* Market overview — a separate status per market rather than one
+            badge that would be misleading for whichever asset it doesn't
+            describe (spec: mixed stock+crypto portfolios). */}
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-ink-faint">{t("home.usMarketsLabel")}</span>
+            <MarketStatusPill category="stock" compact />
+          </div>
+          {hasCrypto && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] text-ink-faint">{t("home.cryptoMarketsLabel")}</span>
+              <MarketStatusPill category="crypto" compact />
+            </div>
+          )}
         </div>
       </div>
 

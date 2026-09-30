@@ -299,6 +299,7 @@ const MECHANICS_KEY: Record<PriceRuleOrderType, string> = {
   "buy-stop": "priceRules.explainBuyStop",
   "sell-limit": "priceRules.explainSellLimit",
   "sell-stop": "priceRules.explainSellStop",
+  market: "priceRules.explainMarket",
 };
 
 /**

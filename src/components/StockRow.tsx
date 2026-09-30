@@ -5,6 +5,7 @@ import { formatShares } from "../lib/format";
 import { Sparkline } from "./Sparkline";
 import { StockLogo } from "./StockLogo";
 import { LiveDot } from "./LiveDot";
+import { MarketStatusPill } from "./MarketStatusPill";
 import { getPriceHistory } from "../data/priceHistory";
 import { isLiveSymbol, useLiveQuotes } from "../data/liveQuotes";
 import { usePortfolio } from "../context/PortfolioContext";
@@ -41,6 +42,7 @@ export function StockRow({ stock: baseStock, subtitle, onClick }: StockRowProps)
           <div className="flex items-center gap-1.5 text-[15px] font-medium text-ink">
             <span className="truncate">{stock.symbol}</span>
             <LiveDot symbol={stock.symbol} />
+            <MarketStatusPill category={stock.category} symbol={stock.symbol} iconOnly />
           </div>
           <div className="truncate text-[13px] text-ink-faint">
             {subtitle ?? (holding ? `${formatShares(holding.shares)} ${t("common.shares")}` : stock.name)}

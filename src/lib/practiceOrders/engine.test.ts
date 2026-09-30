@@ -4,6 +4,7 @@ import {
   computeReservation,
   evaluateTick,
   getQuote,
+  isExecutionEligible,
   isImmediatelyActionable,
   processOrderTick,
   sumReservedCash,
@@ -29,6 +30,7 @@ function makeOrder(overrides: Partial<PriceRuleOrder>): PriceRuleOrder {
     status: "waiting",
     createdAt: NOW,
     duration: "today",
+    sessionScope: "regular",
     expiresAt: FAR_FUTURE,
     reservedCash: 900,
     reservedShares: 0,
@@ -273,5 +275,79 @@ describe("duplicate submission / repeated price events don't double-fill", () =>
     // context layer's job is exactly that state transition, not the engine's.
     const second = tick(order, 85);
     expect(second.kind).toBe("filled");
+  });
+});
+
+describe("session eligibility gating", () => {
+  it("a regular-only limit is inactive in pre-market/after-hours and active in regular", () => {
+    const order = makeOrder({ orderType: "buy-limit", targetPrice: 90, sessionScope: "regular" });
+    expect(isExecutionEligible(order, "pre-market")).toBe(false);
+    expect(isExecutionEligible(order, "after-hours")).toBe(false);
+    expect(isExecutionEligible(order, "regular")).toBe(true);
+    expect(tick(order, 85, { sessionStatus: "pre-market" }).kind).toBe("no-change");
+    expect(tick(order, 85, { sessionStatus: "regular" }).kind).toBe("filled");
+  });
+
+  it("an extended-hours limit is eligible pre-market, regular, and after-hours, but not fully closed", () => {
+    const order = makeOrder({ orderType: "buy-limit", targetPrice: 90, sessionScope: "extended" });
+    expect(isExecutionEligible(order, "pre-market")).toBe(true);
+    expect(isExecutionEligible(order, "regular")).toBe(true);
+    expect(isExecutionEligible(order, "after-hours")).toBe(true);
+    expect(isExecutionEligible(order, "closed")).toBe(false);
+    expect(isExecutionEligible(order, "holiday")).toBe(false);
+    expect(tick(order, 85, { sessionStatus: "pre-market" }).kind).toBe("filled");
+    expect(tick(order, 85, { sessionStatus: "after-hours" }).kind).toBe("filled");
+    expect(tick(order, 85, { sessionStatus: "closed" }).kind).toBe("no-change");
+  });
+
+  it("a stop never triggers outside the regular session, even with 'extended' scope requested", () => {
+    const regularScope = makeOrder({ orderType: "buy-stop", targetPrice: 110, sessionScope: "regular", reservedCash: 1200 });
+    const extendedScope = makeOrder({ orderType: "buy-stop", targetPrice: 110, sessionScope: "extended", reservedCash: 1200 });
+    expect(tick(regularScope, 115, { sessionStatus: "pre-market" }).kind).toBe("no-change");
+    expect(tick(extendedScope, 115, { sessionStatus: "pre-market" }).kind).toBe("no-change");
+    expect(tick(regularScope, 115, { sessionStatus: "after-hours" }).kind).toBe("no-change");
+    const result = processOrderTick({ order: regularScope, referencePrice: 115, now: LATER, sessionStatus: "regular" });
+    expect(result.outcome.kind).toBe("filled");
+  });
+
+  it("a triggered stop (now a market order) does not fill in after-hours even though it already triggered in regular", () => {
+    const triggered = makeOrder({
+      side: "sell",
+      orderType: "sell-stop",
+      targetPrice: 90,
+      status: "triggered",
+      triggeredAt: LATER,
+      reservedShares: 10,
+    });
+    expect(tick(triggered, 89, { sessionStatus: "after-hours" }).kind).toBe("no-change");
+    expect(tick(triggered, 89, { sessionStatus: "regular" }).kind).toBe("filled");
+  });
+
+  it("a queued market order only fills during the regular session", () => {
+    const order = makeOrder({ orderType: "market", targetPrice: 100, sessionScope: "regular", reservedCash: 1200 });
+    expect(tick(order, 100, { sessionStatus: "pre-market" }).kind).toBe("no-change");
+    expect(tick(order, 100, { sessionStatus: "after-hours" }).kind).toBe("no-change");
+    const filled = tick(order, 100, { sessionStatus: "regular" });
+    expect(filled.kind).toBe("filled");
+  });
+
+  it("nothing is eligible while halted or unavailable, regardless of order type or scope", () => {
+    const limit = makeOrder({ orderType: "buy-limit", targetPrice: 200, sessionScope: "extended" });
+    expect(tick(limit, 85, { sessionStatus: "halted" }).kind).toBe("no-change");
+    expect(tick(limit, 85, { sessionStatus: "unavailable" }).kind).toBe("no-change");
+  });
+
+  it("crypto's 'open' status makes every order type eligible at any time", () => {
+    const limit = makeOrder({ orderType: "buy-limit", targetPrice: 90, sessionScope: "regular" });
+    const stop = makeOrder({ orderType: "buy-stop", targetPrice: 110, reservedCash: 1200 });
+    expect(isExecutionEligible(limit, "open")).toBe(true);
+    expect(isExecutionEligible(stop, "open")).toBe(true);
+    const result = processOrderTick({ order: stop, referencePrice: 115, now: LATER, sessionStatus: "open" });
+    expect(result.outcome.kind).toBe("filled");
+  });
+
+  it("defaults to 'regular' when sessionStatus is omitted, so pre-existing tests above are unaffected", () => {
+    const order = makeOrder({ orderType: "buy-limit", targetPrice: 90 });
+    expect(tick(order, 85).kind).toBe("filled");
   });
 });

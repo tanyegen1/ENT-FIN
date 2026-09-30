@@ -16,6 +16,8 @@ const ERROR_KEY: Record<string, string> = {
   "invalid-price": "priceRules.errorInvalidPrice",
   "insufficient-funds": "priceRules.errorInsufficientFunds",
   "insufficient-shares": "priceRules.errorInsufficientShares",
+  "session-unavailable": "priceRules.errorSessionUnavailable",
+  "instrument-halted": "priceRules.errorInstrumentHalted",
 };
 
 interface EditPriceRuleSheetProps {

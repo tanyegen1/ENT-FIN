@@ -14,11 +14,15 @@ interface PriceTargetSelectorProps {
   onChange: (value: number) => void;
 }
 
+// This selector is only ever driven by classifyOrderType's result, which
+// never produces "market" (queued market orders are built by a separate
+// flow) — included anyway so the map stays a total function of the type.
 const EXPLAIN_KEY: Record<PriceRuleOrderType, string> = {
   "buy-limit": "priceRules.explainBuyLimit",
   "buy-stop": "priceRules.explainBuyStop",
   "sell-limit": "priceRules.explainSellLimit",
   "sell-stop": "priceRules.explainSellStop",
+  market: "priceRules.explainMarket",
 };
 
 const TECHNICAL_KEY: Record<PriceRuleOrderType, string> = {
@@ -26,6 +30,7 @@ const TECHNICAL_KEY: Record<PriceRuleOrderType, string> = {
   "buy-stop": "priceRules.technicalBuyStop",
   "sell-limit": "priceRules.technicalSellLimit",
   "sell-stop": "priceRules.technicalSellStop",
+  market: "priceRules.technicalMarket",
 };
 
 /**

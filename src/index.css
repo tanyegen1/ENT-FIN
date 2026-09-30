@@ -29,6 +29,16 @@
   --color-brand-light: var(--t-brand-light);
   --color-brand-soft: var(--t-brand-soft);
   --color-brand-ink: var(--t-brand-ink);
+
+  /* Market-session status only (MarketStatusPill) — deliberately separate
+     from --color-up/down (reserved for gains/losses) and muted rather than
+     vivid, since a session badge shouldn't visually compete with a price
+     move. "Open" here means "trading now" — the regular session for
+     equities, or crypto's always-on session. */
+  --color-session-open: var(--t-session-open);
+  --color-session-open-soft: var(--t-session-open-soft);
+  --color-session-after: var(--t-session-after);
+  --color-session-after-soft: var(--t-session-after-soft);
 }
 
 /* Dark theme (default) — near-black with a faint cool undertone rather
@@ -66,6 +76,11 @@
   --t-brand-soft: #1959e926;
   --t-brand-ink: #ffffff;
 
+  --t-session-open: #3ecf6e;
+  --t-session-open-soft: #3ecf6e20;
+  --t-session-after: #a78bfa;
+  --t-session-after-soft: #a78bfa20;
+
   color-scheme: dark;
 }
 
@@ -95,6 +110,11 @@
   --t-brand-light: #3b6fec;
   --t-brand-soft: #1959e91a;
   --t-brand-ink: #ffffff;
+
+  --t-session-open: #1a8a4a;
+  --t-session-open-soft: #1a8a4a15;
+  --t-session-after: #7c5cd4;
+  --t-session-after-soft: #7c5cd415;
 
   color-scheme: light;
 }

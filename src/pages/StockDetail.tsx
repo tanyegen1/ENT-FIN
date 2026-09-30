@@ -18,6 +18,7 @@ import { RecurringSheet } from "../components/RecurringSheet";
 import { PriceAlertSheet } from "../components/PriceAlertSheet";
 import { PriceRuleSheet } from "../components/PriceRuleSheet";
 import { LiveDot } from "../components/LiveDot";
+import { MarketStatusPill } from "../components/MarketStatusPill";
 import { StockLogo } from "../components/StockLogo";
 import { InfoTip } from "../components/InfoTip";
 import { InsightGlossary } from "../components/InsightGlossary";
@@ -54,7 +55,7 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [recurringOpen, setRecurringOpen] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
-  const [priceRuleOpen, setPriceRuleOpen] = useState(false);
+  const [priceRuleConfig, setPriceRuleConfig] = useState<{ side: "buy" | "sell"; extendedHours?: boolean } | null>(null);
 
   const history = usePriceHistory(
     stock?.symbol ?? symbol.toUpperCase(),
@@ -102,11 +103,12 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
     <div className="pb-10">
       <PageHeader title={stock.symbol} back />
 
-      <div className="flex items-center gap-3 px-4 pt-4 lg:px-6">
+      <div className="flex items-start gap-3 px-4 pt-4 lg:px-6">
         <StockLogo symbol={stock.symbol} name={stock.name} fallbackColor={stock.color} size={40} />
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="text-lg font-semibold text-ink">{stock.name}</div>
           <div className="text-[13px] text-ink-faint">{stock.symbol}</div>
+          <MarketStatusPill category={stock.category} symbol={stock.symbol} compact className="mt-1.5" />
         </div>
       </div>
 
@@ -262,7 +264,7 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
         </div>
 
         <motion.button
-          onClick={() => setPriceRuleOpen(true)}
+          onClick={() => setPriceRuleConfig({ side: "buy" })}
           className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-full border border-dashed border-border py-2.5 text-[13px] font-semibold text-ink-dim hover:bg-surface-2 cursor-pointer"
           whileTap={{ scale: 0.98 }}
           transition={{ duration: 0.12 }}
@@ -343,7 +345,17 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
       </section>
 
       <AnimatePresence>
-        {order && <OrderSheet stock={stock} initialSide={order} onClose={() => setOrder(null)} />}
+        {order && (
+          <OrderSheet
+            stock={stock}
+            initialSide={order}
+            onClose={() => setOrder(null)}
+            onSwitchToPriceRule={(side, opts) => {
+              setOrder(null);
+              setPriceRuleConfig({ side, extendedHours: opts?.extendedHours });
+            }}
+          />
+        )}
       </AnimatePresence>
       <AnimatePresence>
         {recurringOpen && (
@@ -359,13 +371,14 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
         {alertOpen && <PriceAlertSheet stock={stock} onClose={() => setAlertOpen(false)} />}
       </AnimatePresence>
       <AnimatePresence>
-        {priceRuleOpen && (
+        {priceRuleConfig && (
           <PriceRuleSheet
             stock={stock}
-            initialSide="buy"
-            onClose={() => setPriceRuleOpen(false)}
+            initialSide={priceRuleConfig.side}
+            initialExtendedHours={priceRuleConfig.extendedHours}
+            onClose={() => setPriceRuleConfig(null)}
             onOpenMarketOrder={(side) => {
-              setPriceRuleOpen(false);
+              setPriceRuleConfig(null);
               setOrder(side);
             }}
           />

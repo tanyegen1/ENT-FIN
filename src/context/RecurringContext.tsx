@@ -125,10 +125,10 @@ export function RecurringProvider({ children }: { children: ReactNode }) {
       if (!plan) return;
       const stock = getLiveStock(plan.symbol) ?? getStock(plan.symbol);
       const price = stock?.price ?? 0;
-      const succeeded = price > 0 && plan.amount <= spendableCash + 0.005;
-      if (succeeded) {
-        buy(plan.symbol, plan.amount / price, price);
-      }
+      // buy() itself checks affordability and session eligibility (a
+      // recurring plan shouldn't silently "succeed" outside regular
+      // trading hours) — its real return value is the source of truth.
+      const succeeded = price > 0 && plan.amount <= spendableCash + 0.005 && buy(plan.symbol, plan.amount / price, price);
       const run: RecurringRun = {
         id: makeId(),
         timestamp: Date.now(),

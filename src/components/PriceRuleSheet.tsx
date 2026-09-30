@@ -3,17 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { X, Minus, Plus, FlaskConical } from "lucide-react";
 import clsx from "clsx";
-import type { PriceRuleDuration, PriceRuleOrder, PriceRuleOrderType, Stock } from "../types";
+import type { PriceRuleDuration, PriceRuleOrder, PriceRuleOrderType, PriceRuleSessionScope, Stock } from "../types";
 import { usePortfolio } from "../context/PortfolioContext";
 import { usePriceAlerts } from "../context/PriceAlertsContext";
 import { useLocale } from "../context/LocaleContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { classifyOrderType, isImmediatelyActionable } from "../lib/practiceOrders/engine";
-import { isMarketOpen, nextSessionOpen } from "../lib/marketClock";
+import { useMarketSessionState } from "../hooks/useMarketSessionState";
 import { formatShares } from "../lib/format";
 import { PriceTargetSelector } from "./PriceTargetSelector";
 import { RulePreview } from "./RulePreview";
 import { ExplainRuleButton } from "./ExplainRuleButton";
+import { MarketStatusPill } from "./MarketStatusPill";
 
 const SHEET_SPRING = { type: "spring", stiffness: 420, damping: 38 } as const;
 const STEP_TRANSITION = {
@@ -26,23 +27,32 @@ const STEP_TRANSITION = {
 type Side = "buy" | "sell";
 type Step = "timing" | "target" | "choice" | "duration" | "review" | "success";
 
+// "market" here covers a queued market order (see "Queue for regular
+// opening"/"Queue buy/sell order" in the instant Buy/Sell sheet) — the
+// beginner price-rule builder itself never produces one via
+// classifyOrderType, but shared components like ExplainRuleButton render
+// whatever order type is actually stored, so these maps stay complete.
 const REVIEW_NEXT_KEY: Record<PriceRuleOrderType, string> = {
   "buy-limit": "priceRules.reviewWhatHappensNextBuyLimit",
   "buy-stop": "priceRules.reviewWhatHappensNextBuyStop",
   "sell-limit": "priceRules.reviewWhatHappensNextSellLimit",
   "sell-stop": "priceRules.reviewWhatHappensNextSellStop",
+  market: "priceRules.reviewWhatHappensNextMarket",
 };
 const TECHNICAL_KEY: Record<PriceRuleOrderType, string> = {
   "buy-limit": "priceRules.technicalBuyLimit",
   "buy-stop": "priceRules.technicalBuyStop",
   "sell-limit": "priceRules.technicalSellLimit",
   "sell-stop": "priceRules.technicalSellStop",
+  market: "priceRules.technicalMarket",
 };
 const ERROR_KEY: Record<string, string> = {
   "invalid-quantity": "priceRules.errorInvalidQuantity",
   "invalid-price": "priceRules.errorInvalidPrice",
   "insufficient-funds": "priceRules.errorInsufficientFunds",
   "insufficient-shares": "priceRules.errorInsufficientShares",
+  "session-unavailable": "priceRules.errorSessionUnavailable",
+  "instrument-halted": "priceRules.errorInstrumentHalted",
 };
 const SENTENCE_ACTION_WORD: Record<Side, string> = { buy: "priceRules.sentenceBuy", sell: "priceRules.sentenceSell" };
 
@@ -52,6 +62,7 @@ function makeDraftOrder(base: {
   orderType: PriceRuleOrderType;
   targetPrice: number;
   quantity: number;
+  sessionScope?: PriceRuleSessionScope;
 }): PriceRuleOrder {
   return {
     id: "draft",
@@ -65,6 +76,7 @@ function makeDraftOrder(base: {
     status: "waiting",
     createdAt: Date.now(),
     duration: "today",
+    sessionScope: base.sessionScope ?? "regular",
     expiresAt: Date.now(),
     reservedCash: 0,
     reservedShares: 0,
@@ -83,16 +95,18 @@ interface PriceRuleSheetProps {
   onClose: () => void;
   /** "Now" always reuses the existing instant market order flow — this sheet never duplicates it. */
   onOpenMarketOrder: (side: Side) => void;
+  /** Set when arriving here from OrderSheet's "Set a limit price" during pre-market/after-hours — skips straight to the target step with extended hours already opted in (never silently defaulted otherwise). */
+  initialExtendedHours?: boolean;
 }
 
-export function PriceRuleSheet({ stock, initialSide, onClose, onOpenMarketOrder }: PriceRuleSheetProps) {
+export function PriceRuleSheet({ stock, initialSide, onClose, onOpenMarketOrder, initialExtendedHours }: PriceRuleSheetProps) {
   const { spendableCash, availableShares, createPriceRule, priceRules } = usePortfolio();
   const { createAlert } = usePriceAlerts();
   const { t } = useLocale();
   const { formatDisplay } = useCurrency();
   const navigate = useNavigate();
 
-  const [step, setStep] = useState<Step>("timing");
+  const [step, setStep] = useState<Step>(initialExtendedHours !== undefined ? "target" : "timing");
   const [side, setSide] = useState<Side>(initialSide);
   const [target, setTarget] = useState(stock.price);
   const [quantity, setQuantity] = useState(1);
@@ -104,8 +118,13 @@ export function PriceRuleSheet({ stock, initialSide, onClose, onOpenMarketOrder 
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [createdKind, setCreatedKind] = useState<"order" | "alert">("order");
+  // Only ever "extended" for a buy-limit/sell-limit — see the toggle below,
+  // shown only for those two order types. Stops and queued market orders
+  // are always "regular" in this profile (see lib/marketSession.ts).
+  const [sessionScope, setSessionScope] = useState<PriceRuleSessionScope>(initialExtendedHours ? "extended" : "regular");
 
   const orderType = classifyOrderType(side, target, stock.price);
+  const isLimitOrder = orderType === "buy-limit" || orderType === "sell-limit";
   const isEqual = Math.abs(target - stock.price) < 0.005;
   const immediate = orderType ? isImmediatelyActionable(orderType, target, stock.price) : false;
   const needsExplicitChoice = (isEqual || immediate) && !immediateAcknowledged;
@@ -116,10 +135,20 @@ export function PriceRuleSheet({ stock, initialSide, onClose, onOpenMarketOrder 
   const quantityValid = Number.isInteger(quantity) && quantity > 0;
   const affordable = side === "buy" ? estimatedValue <= spendableCash + 0.005 : quantity <= availableShares(stock.symbol) + 0.000001;
 
-  const marketOpen = isMarketOpen();
+  const session = useMarketSessionState(stock.category, stock.symbol);
+  const marketOpen = session.status === "regular" || session.status === "open";
   const nextOpenLabel = useMemo(() => {
-    return nextSessionOpen().toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" });
-  }, []);
+    if (session.nextRegularOpen === null) return t("priceRules.sessionUnavailable");
+    return new Date(session.nextRegularOpen).toLocaleString(undefined, {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- recomputed each render anyway since `session` is derived fresh every render; this memo only avoids reformatting on unrelated re-renders within the same tick
+  }, [session.nextRegularOpen, t]);
 
   const createdOrder = createdId ? priceRules.find((r) => r.id === createdId) ?? null : null;
 
@@ -146,6 +175,7 @@ export function PriceRuleSheet({ stock, initialSide, onClose, onOpenMarketOrder 
       quantity,
       duration,
       untilDate: duration === "date" && untilDate ? new Date(untilDate) : undefined,
+      sessionScope,
     });
     if (!result.ok) {
       setSubmitError(t(ERROR_KEY[result.error]));
@@ -177,12 +207,13 @@ export function PriceRuleSheet({ stock, initialSide, onClose, onOpenMarketOrder 
         transition={SHEET_SPRING}
       >
         <div className="flex items-center justify-between border-b border-border-soft px-4 py-3">
-          <div className="flex flex-col">
+          <div className="flex flex-col gap-1">
             <span className="text-[15px] font-semibold text-ink">{t("priceRules.sheetTitle")}</span>
             <span className="inline-flex w-fit items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-brand-light">
               <FlaskConical size={10} />
               {t("priceRules.practiceModeBadge")} · {t("priceRules.practiceModeVirtualMoney")}
             </span>
+            <MarketStatusPill category={stock.category} symbol={stock.symbol} compact />
           </div>
           <button
             onClick={onClose}
@@ -193,7 +224,15 @@ export function PriceRuleSheet({ stock, initialSide, onClose, onOpenMarketOrder 
           </button>
         </div>
 
-        <div className="overflow-y-auto">
+        {(session.status === "halted" || session.status === "unavailable") && (
+          <div className="mx-4 mt-3 rounded-2xl border border-warn/30 bg-warn-soft px-4 py-3.5">
+            <p className="text-[13px] font-semibold text-warn">
+              {t(session.status === "halted" ? "priceRules.errorInstrumentHalted" : "priceRules.errorSessionUnavailable")}
+            </p>
+          </div>
+        )}
+
+        <div className={clsx("overflow-y-auto", (session.status === "halted" || session.status === "unavailable") && "pointer-events-none opacity-40")}>
           <AnimatePresence mode="wait" initial={false}>
             <motion.div key={step} {...STEP_TRANSITION}>
               {step === "timing" && (
@@ -315,6 +354,21 @@ export function PriceRuleSheet({ stock, initialSide, onClose, onOpenMarketOrder 
                       <span className="tabular-nums text-ink">{formatDisplay(estimatedValue)}</span>
                     </div>
                   </div>
+
+                  {isLimitOrder && session.profile === "us_equity" && (
+                    <label className="flex items-start gap-3 rounded-xl bg-surface-2 px-3.5 py-3 text-[13px]">
+                      <input
+                        type="checkbox"
+                        checked={sessionScope === "extended"}
+                        onChange={(e) => setSessionScope(e.target.checked ? "extended" : "regular")}
+                        className="mt-0.5 h-4 w-4 accent-brand"
+                      />
+                      <span className="flex flex-col gap-0.5">
+                        <span className="font-medium text-ink">{t("priceRules.includeExtendedHours")}</span>
+                        <span className="text-[12px] leading-relaxed text-ink-faint">{t("priceRules.includeExtendedHoursDetail")}</span>
+                      </span>
+                    </label>
+                  )}
 
                   {!quantityValid && (
                     <p className="text-[12px] font-medium text-down">{t("priceRules.errorInvalidQuantity")}</p>

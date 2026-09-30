@@ -82,7 +82,11 @@ export function PriceRulesPage() {
         {sorted.map((order) => {
           const stock = getLiveStock(order.symbol) ?? getStock(order.symbol);
           const remaining = order.quantity - order.filledQuantity;
-          const canEdit = order.status === "waiting";
+          // A queued market order has no user-chosen price to edit (its
+          // targetPrice is just a reservation snapshot) — offering "Edit"
+          // here would look like setting a limit price, which this profile
+          // never silently creates. Cancel is still available below.
+          const canEdit = order.status === "waiting" && order.orderType !== "market";
           const canCancel = order.status === "waiting" || order.status === "triggered";
           const rejectionReason = order.statusMessage === "gap-insufficient-funds" ? t("priceRules.rejectionReasonGap") : order.statusMessage ?? "";
 
@@ -94,34 +98,47 @@ export function PriceRulesPage() {
                   <div className="min-w-0">
                     <div className="truncate text-[14px] font-semibold text-ink">{order.symbol}</div>
                     <div className="truncate text-[12px] text-ink-faint">
-                      {t("priceRules.sentenceTemplate", {
-                        symbol: order.symbol,
-                        condition: t(
-                          order.orderType === "buy-limit" || order.orderType === "sell-stop"
-                            ? "priceRules.sentenceFallsTo"
-                            : "priceRules.sentenceRisesTo",
-                        ),
-                        price: formatDisplay(order.targetPrice, { precise: true }),
-                        quantity: order.quantity,
-                        action: t(order.side === "buy" ? "priceRules.sentenceBuy" : "priceRules.sentenceSell"),
-                        sharesWord: t("priceRules.sentenceSharesWord"),
-                      })}
+                      {order.orderType === "market"
+                        ? t(order.side === "buy" ? "priceRules.marketBuySummary" : "priceRules.marketSellSummary", {
+                            symbol: order.symbol,
+                            quantity: order.quantity,
+                            sharesWord: t("priceRules.sentenceSharesWord"),
+                          })
+                        : t("priceRules.sentenceTemplate", {
+                            symbol: order.symbol,
+                            condition: t(
+                              order.orderType === "buy-limit" || order.orderType === "sell-stop"
+                                ? "priceRules.sentenceFallsTo"
+                                : "priceRules.sentenceRisesTo",
+                            ),
+                            price: formatDisplay(order.targetPrice, { precise: true }),
+                            quantity: order.quantity,
+                            action: t(order.side === "buy" ? "priceRules.sentenceBuy" : "priceRules.sentenceSell"),
+                            sharesWord: t("priceRules.sentenceSharesWord"),
+                          })}
                     </div>
                   </div>
                 </div>
                 <span className={clsx("shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold", STATUS_STYLE[order.status])}>
-                  {t(STATUS_LABEL_KEY[order.status])}
+                  {t(order.orderType === "market" && order.status === "waiting" ? "priceRules.statusWaitingMarket" : STATUS_LABEL_KEY[order.status])}
                 </span>
               </div>
 
               <p className="mt-2 text-[12px] leading-relaxed text-ink-dim">
-                {t(STATUS_DETAIL_KEY[order.status], {
-                  symbol: order.symbol,
-                  price: formatDisplay(order.targetPrice, { precise: true }),
-                  filled: formatShares(order.filledQuantity),
-                  quantity: order.quantity,
-                  reason: rejectionReason,
-                })}
+                {t(
+                  order.orderType === "market" && order.status === "waiting"
+                    ? "priceRules.statusWaitingDetailMarket"
+                    : order.orderType === "market" && order.status === "expired"
+                      ? "priceRules.statusExpiredDetailMarket"
+                      : STATUS_DETAIL_KEY[order.status],
+                  {
+                    symbol: order.symbol,
+                    price: formatDisplay(order.targetPrice, { precise: true }),
+                    filled: formatShares(order.filledQuantity),
+                    quantity: order.quantity,
+                    reason: rejectionReason,
+                  },
+                )}
               </p>
 
               <div className="mt-3 grid grid-cols-2 gap-y-2 text-[13px]">

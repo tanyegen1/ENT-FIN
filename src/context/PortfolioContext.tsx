@@ -15,6 +15,7 @@ import type {
   PriceRuleDuration,
   PriceRuleOrder,
   PriceRuleOrderType,
+  PriceRuleSessionScope,
   TransferRecord,
 } from "../types";
 import { EMPTY_START_CASH, INITIAL_CASH, INITIAL_HOLDINGS, INITIAL_WATCHLIST } from "../data/portfolio";
@@ -33,7 +34,13 @@ import {
   sumReservedCash,
   sumReservedShares,
 } from "../lib/practiceOrders/engine";
-import { endOfCurrentOrNextSession, sessionCloseOn } from "../lib/marketClock";
+import {
+  extendedSessionExpiry,
+  extendedSessionExpiryOn,
+  getMarketSession,
+  regularSessionExpiry,
+  regularSessionExpiryOn,
+} from "../lib/marketSession";
 
 const STORAGE_KEY = "arvo.portfolio.v1";
 
@@ -61,19 +68,29 @@ export interface CreatePriceRuleInput {
   duration: PriceRuleDuration;
   /** Required when duration === "date". */
   untilDate?: Date;
+  /**
+   * Only meaningful for buy-limit/sell-limit — stop orders and queued
+   * market orders are always coerced to "regular" regardless of what's
+   * passed here, since this profile never triggers a stop or executes a
+   * market order outside the regular session.
+   */
+  sessionScope: PriceRuleSessionScope;
 }
 
 export type CreatePriceRuleError =
   | "invalid-quantity"
   | "invalid-price"
   | "insufficient-funds"
-  | "insufficient-shares";
+  | "insufficient-shares"
+  | "session-unavailable"
+  | "instrument-halted";
 
 export type CreatePriceRuleResult = { ok: true; id: string } | { ok: false; error: CreatePriceRuleError };
 
 interface PortfolioContextValue extends PersistedState {
-  buy: (symbol: string, shares: number, price: number) => void;
-  sell: (symbol: string, shares: number, price: number) => void;
+  /** False (no state change, no notification) if the instrument isn't in a session where instant execution is allowed, or funds/holdings are insufficient. */
+  buy: (symbol: string, shares: number, price: number) => boolean;
+  sell: (symbol: string, shares: number, price: number) => boolean;
   deposit: (amount: number) => void;
   withdraw: (amount: number) => boolean;
   resetPortfolio: (startingCash?: number) => void;
@@ -139,14 +156,32 @@ function loadLocal(mode: AccountMode): PersistedState {
   return defaultState(mode);
 }
 
-function resolveExpiry(duration: PriceRuleDuration, untilDate?: Date): number {
-  if (duration === "date" && untilDate) return sessionCloseOn(untilDate).getTime();
-  return endOfCurrentOrNextSession(new Date()).getTime();
+/**
+ * Session-aware DAY expiry (spec section 4): a regular-only order expires
+ * at its target trading day's regular close; an extended-hours-included
+ * limit continues through pre-market/regular/after-hours and expires at
+ * that day's after-hours close. Returns null when the calendar can't
+ * establish this reliably (outside CALENDAR_COVERAGE) — the caller must
+ * refuse to create the order rather than guess an expiry.
+ */
+function resolveExpiry(duration: PriceRuleDuration, sessionScope: PriceRuleSessionScope, untilDate?: Date): number | null {
+  if (duration === "date" && untilDate) {
+    return sessionScope === "extended" ? extendedSessionExpiryOn(untilDate) : regularSessionExpiryOn(untilDate);
+  }
+  return sessionScope === "extended" ? extendedSessionExpiry(new Date()) : regularSessionExpiry(new Date());
 }
 
 function referencePriceFor(symbol: string): number | null {
   const stock = getLiveStock(symbol) ?? getStock(symbol);
   return stock ? stock.price : null;
+}
+
+/** Is an ordinary instant market buy/sell allowed for this symbol right now? Regular session for equities/funds, always true for crypto (no sessions), never during a halt or an out-of-coverage/unavailable calendar. */
+function instantExecutionEligible(symbol: string): boolean {
+  const stock = getLiveStock(symbol) ?? getStock(symbol);
+  if (!stock) return false;
+  const session = getMarketSession(stock.category, { symbol });
+  return session.status === "regular" || session.status === "open";
 }
 
 export function PortfolioProvider({ children }: { children: ReactNode }) {
@@ -241,10 +276,13 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     }
   }, [state, isCloud, user, loaded]);
 
-  const buy = useCallback((symbol: string, shares: number, price: number) => {
+  const buy = useCallback((symbol: string, shares: number, price: number): boolean => {
+    if (!instantExecutionEligible(symbol)) return false;
+    let succeeded = false;
     setState((prev) => {
       const total = shares * price;
       if (total > prev.cash + 0.005) return prev;
+      succeeded = true;
       const existing = prev.holdings.find((h) => h.symbol === symbol);
       let holdings: Holding[];
       if (existing) {
@@ -273,18 +311,24 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         orders: [order, ...prev.orders],
       };
     });
-    addNotification(
-      "orders",
-      t("notifications.orderBoughtTitle"),
-      t("notifications.orderBoughtBody", { shares: formatShares(shares), symbol, amount: formatCurrency(shares * price) }),
-      `/stock/${symbol}`,
-    );
+    if (succeeded) {
+      addNotification(
+        "orders",
+        t("notifications.orderBoughtTitle"),
+        t("notifications.orderBoughtBody", { shares: formatShares(shares), symbol, amount: formatCurrency(shares * price) }),
+        `/stock/${symbol}`,
+      );
+    }
+    return succeeded;
   }, [addNotification, t]);
 
-  const sell = useCallback((symbol: string, shares: number, price: number) => {
+  const sell = useCallback((symbol: string, shares: number, price: number): boolean => {
+    if (!instantExecutionEligible(symbol)) return false;
+    let succeeded = false;
     setState((prev) => {
       const existing = prev.holdings.find((h) => h.symbol === symbol);
       if (!existing || existing.shares < shares - 0.000001) return prev;
+      succeeded = true;
       const total = shares * price;
       const remaining = existing.shares - shares;
       const holdings =
@@ -309,12 +353,15 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         orders: [order, ...prev.orders],
       };
     });
-    addNotification(
-      "orders",
-      t("notifications.orderSoldTitle"),
-      t("notifications.orderSoldBody", { shares: formatShares(shares), symbol, amount: formatCurrency(shares * price) }),
-      `/stock/${symbol}`,
-    );
+    if (succeeded) {
+      addNotification(
+        "orders",
+        t("notifications.orderSoldTitle"),
+        t("notifications.orderSoldBody", { shares: formatShares(shares), symbol, amount: formatCurrency(shares * price) }),
+        `/stock/${symbol}`,
+      );
+    }
+    return succeeded;
   }, [addNotification, t]);
 
   const deposit = useCallback((amount: number) => {
@@ -423,8 +470,10 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
           if (rule.status !== "waiting" && rule.status !== "triggered") return rule;
           const referencePrice = referencePriceFor(rule.symbol);
           if (referencePrice === null) return rule;
+          const category = getStock(rule.symbol)?.category ?? "stock";
+          const sessionStatus = getMarketSession(category, { now: new Date(now), symbol: rule.symbol }).status;
 
-          const { outcome } = processOrderTick({ order: rule, referencePrice, now });
+          const { outcome } = processOrderTick({ order: rule, referencePrice, now, sessionStatus });
 
           switch (outcome.kind) {
             case "no-change":
@@ -532,6 +581,20 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         return { ok: false, error: "invalid-price" };
       }
 
+      // Stops and queued market orders are never extended-hours eligible in
+      // this profile, regardless of what the caller passed — only a
+      // buy-limit/sell-limit can actually carry "extended" scope.
+      const sessionScope: PriceRuleSessionScope =
+        input.orderType === "buy-limit" || input.orderType === "sell-limit" ? input.sessionScope : "regular";
+
+      const category = getStock(input.symbol)?.category ?? "stock";
+      const session = getMarketSession(category, { symbol: input.symbol });
+      if (session.status === "unavailable") return { ok: false, error: "session-unavailable" };
+      if (session.status === "halted") return { ok: false, error: "instrument-halted" };
+
+      const expiresAt = resolveExpiry(input.duration, sessionScope, input.untilDate);
+      if (expiresAt === null) return { ok: false, error: "session-unavailable" };
+
       const { reservedCash: newReservedCash, reservedShares: newReservedShares } = computeReservation(input);
 
       // A plain `let` reassigned only inside the setState updater below
@@ -570,7 +633,8 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
           status: "waiting",
           createdAt: now,
           duration: input.duration,
-          expiresAt: resolveExpiry(input.duration, input.untilDate),
+          sessionScope,
+          expiresAt,
           reservedCash: newReservedCash,
           reservedShares: newReservedShares,
           statusMessage: null,

@@ -170,12 +170,15 @@ export interface AnalystFactor {
 
 // ---- Practice price rules (limit/stop orders) ----
 // Beginner-facing name is "price rule"; these are the technical order types
-// it maps to. "market" isn't included here — an instant buy/sell keeps using
-// the existing OrderRecord path unchanged.
-export type PriceRuleOrderType = "buy-limit" | "buy-stop" | "sell-limit" | "sell-stop";
+// it maps to. "market" here is a *queued* market order — created only when
+// the user chooses "Queue for regular opening" / "Queue buy/sell order"
+// from the instant Buy/Sell sheet while the market isn't in its regular
+// session; an ordinary immediate-execution buy/sell during the regular
+// session still goes through the existing OrderRecord path unchanged.
+export type PriceRuleOrderType = "buy-limit" | "buy-stop" | "sell-limit" | "sell-stop" | "market";
 
 export type PriceRuleStatus =
-  | "waiting" // Waiting for price
+  | "waiting" // Waiting for price (or, for a queued market order, waiting for the next eligible session)
   | "triggered" // Stop activated, converted to a market order, awaiting execution
   | "partial" // Partially filled
   | "filled"
@@ -184,6 +187,16 @@ export type PriceRuleStatus =
   | "rejected";
 
 export type PriceRuleDuration = "today" | "date";
+
+/**
+ * Which sessions this order is eligible to act in. "regular" is the only
+ * scope available to stop orders and queued market orders (this profile
+ * never triggers a stop or executes a market order outside the regular
+ * session). "extended" is offered only for whole-share limit orders, and
+ * only when the user explicitly opts in — it's eligible during pre-market,
+ * regular, and after-hours, never silently upgraded or downgraded.
+ */
+export type PriceRuleSessionScope = "regular" | "extended";
 
 export interface PriceRuleFill {
   id: string;
@@ -206,7 +219,8 @@ export interface PriceRuleOrder {
   status: PriceRuleStatus;
   createdAt: number;
   duration: PriceRuleDuration;
-  /** Resolved expiry timestamp — end of the current simulated session for "today", or the chosen date's session close for "date". */
+  sessionScope: PriceRuleSessionScope;
+  /** Resolved expiry timestamp — session-close-aware: the target trading day's regular close for "regular" scope, or its after-hours close for "extended" scope (see lib/marketSession.ts). */
   expiresAt: number;
   /** Cash held back from spendable cash while this buy rule is pending (0 for sell rules). */
   reservedCash: number;

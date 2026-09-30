@@ -1,4 +1,5 @@
 import type { PriceRuleOrder, PriceRuleOrderType } from "../../types";
+import type { SessionStatus } from "../marketSession";
 
 export interface Quote {
   bid: number;
@@ -33,7 +34,14 @@ export function classifyOrderType(
   return targetPrice > currentPrice ? "sell-limit" : "sell-stop";
 }
 
-/** Is this order's condition already satisfied at the current price, i.e. would it activate immediately if placed right now? */
+/**
+ * Is this order's condition already satisfied at the current price, i.e.
+ * would it activate immediately if placed right now? Only meaningful for
+ * the 4 beginner limit/stop scenarios `classifyOrderType` returns — a
+ * queued market order is never built through that path, so "market" isn't
+ * really reachable here, but is handled (as always-eligible) for type
+ * completeness rather than left to fall through unhandled.
+ */
 export function isImmediatelyActionable(
   orderType: PriceRuleOrderType,
   targetPrice: number,
@@ -41,6 +49,8 @@ export function isImmediatelyActionable(
 ): boolean {
   const quote = getQuote(currentPrice);
   switch (orderType) {
+    case "market":
+      return true;
     case "buy-limit":
       return quote.ask <= targetPrice;
     case "sell-limit":
@@ -103,6 +113,41 @@ export interface TickInput {
   now: number;
   /** Shares available to fill this tick, default unlimited. Lets tests (and any future liquidity model) simulate a partial fill from constrained liquidity. */
   maxFillQuantity?: number;
+  /**
+   * The market session this order's instrument is currently in (from
+   * lib/marketSession.ts). Defaults to "regular" so the many tests below
+   * that aren't about session gating don't need to care about it. Real
+   * callers (PortfolioContext) always pass the live value.
+   */
+  sessionStatus?: SessionStatus;
+}
+
+/**
+ * Whether this order's type/scope is allowed to be evaluated at all under
+ * the current session status — independent of price, this only answers
+ * "is this order type awake right now", not "would it fill". A stop only
+ * ever triggers during the regular session; once triggered (or for a
+ * queued market order) it behaves as a market order, which this profile
+ * never executes outside the regular session either. A limit order is
+ * eligible in extended hours only when the user explicitly opted in.
+ */
+export function isExecutionEligible(
+  order: Pick<PriceRuleOrder, "orderType" | "sessionScope" | "status">,
+  sessionStatus: SessionStatus,
+): boolean {
+  if (sessionStatus === "halted" || sessionStatus === "unavailable") return false;
+  if (sessionStatus === "open") return true; // crypto: no sessions, always eligible
+
+  if (order.status === "triggered" || order.orderType === "market") {
+    return sessionStatus === "regular";
+  }
+  if (order.orderType === "buy-stop" || order.orderType === "sell-stop") {
+    return sessionStatus === "regular";
+  }
+  if (order.sessionScope === "extended") {
+    return sessionStatus === "pre-market" || sessionStatus === "regular" || sessionStatus === "after-hours";
+  }
+  return sessionStatus === "regular";
 }
 
 function capByReservedCash(
@@ -155,12 +200,22 @@ function buildFillOutcome(
  * liquidity-constrained test) to genuinely observe the "triggered /
  * awaiting execution" status.
  */
-export function evaluateTick({ order, referencePrice, now, maxFillQuantity = Infinity }: TickInput): TickOutcome {
+export function evaluateTick({ order, referencePrice, now, maxFillQuantity = Infinity, sessionStatus = "regular" }: TickInput): TickOutcome {
   if (order.status !== "waiting" && order.status !== "triggered") return { kind: "no-change" };
   if (now >= order.expiresAt) return { kind: "expired" };
+  if (!isExecutionEligible(order, sessionStatus)) return { kind: "no-change" };
 
   const quote = getQuote(referencePrice);
   const remainingQty = order.quantity - order.filledQuantity;
+
+  // A queued market order (see "Queue for regular opening" / "Queue buy/sell
+  // order") has no price condition to wait for — once isExecutionEligible
+  // above says the regular session is under way, it fills immediately at
+  // the fresh quote, same as a triggered stop below.
+  if (order.orderType === "market") {
+    const fillPrice = order.side === "buy" ? quote.ask : quote.bid;
+    return buildFillOutcome(fillPrice, remainingQty, maxFillQuantity, order);
+  }
 
   if (order.status === "waiting") {
     switch (order.orderType) {

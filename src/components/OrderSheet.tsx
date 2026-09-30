@@ -1,17 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
-import { TrendingUp, X } from "lucide-react";
+import { FlaskConical, TrendingUp, X } from "lucide-react";
 import clsx from "clsx";
 import type { Stock } from "../types";
 import { Keypad } from "./Keypad";
 import { SuccessBurst } from "./SuccessBurst";
 import { InfoTip } from "./InfoTip";
 import { GetHelpButton } from "./GetHelpButton";
+import { MarketStatusPill } from "./MarketStatusPill";
+import { ExplainRuleButton } from "./ExplainRuleButton";
 import { usePortfolio } from "../context/PortfolioContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { useLocale } from "../context/LocaleContext";
 import { useCountUp } from "../hooks/useCountUp";
 import { useDraftAmount } from "../hooks/useDraftAmount";
+import { useMarketSessionState } from "../hooks/useMarketSessionState";
 import { getAnalystInsight } from "../data/analystInsights";
 import { computeProjection } from "../lib/analystRating";
 import { formatCurrency, formatCurrencyPrecise, formatPercent, formatShares } from "../lib/format";
@@ -26,22 +30,42 @@ const STEP_TRANSITION = {
 
 type Side = "buy" | "sell";
 type Mode = "dollars" | "shares";
-type Step = "entry" | "review" | "success";
+type Step = "entry" | "review" | "sessionChoice" | "queued" | "success";
+
+// A queued market order is created via the same price-rule machinery as a
+// limit/stop order (see types.ts's PriceRuleOrderType "market"), so it can
+// fail for the same reasons — reused here rather than duplicating the
+// validation logic itself.
+const QUEUE_ERROR_KEY: Record<string, string> = {
+  "invalid-quantity": "priceRules.errorInvalidQuantity",
+  "invalid-price": "priceRules.errorInvalidPrice",
+  "insufficient-funds": "priceRules.errorInsufficientFunds",
+  "insufficient-shares": "priceRules.errorInsufficientShares",
+  "session-unavailable": "priceRules.errorSessionUnavailable",
+  "instrument-halted": "priceRules.errorInstrumentHalted",
+};
 
 interface OrderSheetProps {
   stock: Stock;
   initialSide: Side;
   onClose: () => void;
+  /** Lets the user escape from a closed/extended-hours instant order into the fuller "Set a price rule" builder — e.g. to pick a limit price the queued-market flow here doesn't ask for. */
+  onSwitchToPriceRule?: (side: Side, opts?: { extendedHours?: boolean }) => void;
 }
 
-export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
-  const { cash, reservedCash, spendableCash, getHolding, buy, sell } = usePortfolio();
+export function OrderSheet({ stock, initialSide, onClose, onSwitchToPriceRule }: OrderSheetProps) {
+  const { cash, reservedCash, spendableCash, getHolding, buy, sell, createPriceRule, priceRules } = usePortfolio();
   const { displayCurrency, formatDisplay } = useCurrency();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const navigate = useNavigate();
   const [side, setSide] = useState<Side>(initialSide);
   const [mode, setMode] = useState<Mode>("dollars");
   const [raw, setRaw, clearDraft] = useDraftAmount(`order.${stock.symbol}.${initialSide}`);
   const [step, setStep] = useState<Step>("entry");
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [queuedOrderId, setQueuedOrderId] = useState<string | null>(null);
+  const session = useMarketSessionState(stock.category, stock.symbol);
+  const dateLocale = locale === "tr" ? "tr-TR" : undefined;
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -63,7 +87,31 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
 
   const overBuy = side === "buy" && amount > 0 && cost > spendableCash + 0.005;
   const overSell = side === "sell" && amount > 0 && shares > ownedShares + 0.000001;
+  // Deliberately doesn't gate canReview: a closed/extended-hours market
+  // still lets the user reach Review (where the pill + subtext above
+  // already explain immediate execution isn't available) — handleSubmit's
+  // check is what actually blocks the ineligible instant execution.
   const canReview = amount > 0 && !overBuy && !overSell;
+
+  // Crypto has no sessions ("open" == always tradeable); equities/funds only
+  // execute an instant order during their regular session.
+  const canExecuteNow = session.status === "regular" || session.status === "open";
+  // A queued order reuses the price-rule engine, which only ever holds whole
+  // shares (see PriceRuleOrder.quantity) — a fractional dollar amount is
+  // floored down to the nearest whole share it can actually queue.
+  const queueShares = Math.floor(shares);
+  const canQueue = Number.isFinite(queueShares) && queueShares >= 1;
+  const queuedOrder = queuedOrderId ? priceRules.find((r) => r.id === queuedOrderId) ?? null : null;
+
+  const formatSessionTime = (ms: number) =>
+    new Date(ms).toLocaleString(dateLocale, {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short",
+    });
 
   const maxRaw =
     side === "buy"
@@ -100,9 +148,36 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
 
   const handleSubmit = () => {
     if (!canReview) return;
-    if (side === "buy") buy(stock.symbol, shares, stock.price);
-    else sell(stock.symbol, shares, stock.price);
+    const executed = side === "buy" ? buy(stock.symbol, shares, stock.price) : sell(stock.symbol, shares, stock.price);
+    if (!executed) {
+      // Reaching "review" already implies canExecuteNow was true — this only
+      // fires if the session flipped (e.g. regular close) in the moments
+      // between opening Review and tapping Submit.
+      setSubmitError(t("orderSheet.notEligibleNow"));
+      return;
+    }
     setStep("success");
+    clearDraft();
+  };
+
+  const handleQueue = () => {
+    if (!canQueue) return;
+    const result = createPriceRule({
+      symbol: stock.symbol,
+      side,
+      orderType: "market",
+      targetPrice: stock.price,
+      quantity: queueShares,
+      duration: "today",
+      sessionScope: "regular",
+    });
+    if (!result.ok) {
+      setSubmitError(t(QUEUE_ERROR_KEY[result.error]));
+      return;
+    }
+    setSubmitError(null);
+    setQueuedOrderId(result.id);
+    setStep("queued");
     clearDraft();
   };
 
@@ -129,9 +204,18 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
         transition={SHEET_SPRING}
       >
         <div className="flex items-center justify-between border-b border-border-soft px-4 py-3">
-          <span className="text-[15px] font-semibold text-ink">
-            {step === "success" ? t("orderSheet.orderSubmitted") : `${stock.symbol} · ${stock.name}`}
-          </span>
+          <div className="flex flex-col gap-1">
+            <span className="text-[15px] font-semibold text-ink">
+              {step === "success"
+                ? t("orderSheet.orderSubmitted")
+                : step === "queued"
+                  ? t("orderSheet.orderQueuedTitle")
+                  : `${stock.symbol} · ${stock.name}`}
+            </span>
+            {step !== "success" && step !== "queued" && step !== "sessionChoice" && (
+              <MarketStatusPill category={stock.category} symbol={stock.symbol} compact />
+            )}
+          </div>
           <button
             onClick={onClose}
             className="flex h-10 w-10 items-center justify-center rounded-full text-ink-dim hover:bg-surface-2 cursor-pointer"
@@ -300,7 +384,7 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
             <div className="px-4 pb-6">
               <button
                 disabled={!canReview}
-                onClick={() => setStep("review")}
+                onClick={() => setStep(canExecuteNow ? "review" : "sessionChoice")}
                 className={clsx(
                   "w-full rounded-full py-3.5 text-[15px] font-semibold transition-colors cursor-pointer",
                   canReview
@@ -380,6 +464,7 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
                 </dd>
               </div>
             </dl>
+            {submitError && <p className="mt-3 text-[13px] font-medium text-down">{submitError}</p>}
             <div className="mt-8 flex flex-col gap-2">
               <button
                 onClick={handleSubmit}
@@ -394,6 +479,164 @@ export function OrderSheet({ stock, initialSide, onClose }: OrderSheetProps) {
                 {t("orderSheet.editAmount")}
               </button>
             </div>
+          </div>
+        )}
+
+        {step === "sessionChoice" && (
+          <div className="flex flex-col gap-4 px-4 py-4">
+            <MarketStatusPill category={stock.category} symbol={stock.symbol} />
+
+            <div className="text-[16px] font-semibold text-ink">
+              {t(
+                session.status === "halted"
+                  ? "orderSheet.sessionChoiceHeadingHalted"
+                  : session.status === "unavailable"
+                    ? "orderSheet.sessionChoiceHeadingUnavailable"
+                    : session.status === "pre-market" || session.status === "after-hours"
+                      ? "orderSheet.sessionChoiceHeadingExtended"
+                      : "orderSheet.sessionChoiceHeadingClosed",
+              )}
+            </div>
+
+            {(session.status === "halted" || session.status === "unavailable") && (
+              <p className="text-[13px] leading-relaxed text-ink-dim">
+                {t(
+                  session.status === "halted" ? "orderSheet.sessionChoiceBodyHalted" : "orderSheet.sessionChoiceBodyUnavailable",
+                  { symbol: stock.symbol, reason: session.haltedReason ?? "" },
+                )}
+              </p>
+            )}
+
+            {(session.status === "pre-market" || session.status === "after-hours") && (
+              <>
+                <p className="text-[13px] leading-relaxed text-ink-dim">{t("orderSheet.sessionChoiceBodyExtended")}</p>
+                <p className="text-[12px] leading-relaxed text-ink-faint">{t("orderSheet.sessionChoiceRiskNote")}</p>
+
+                <button
+                  onClick={() => {
+                    onSwitchToPriceRule?.(side, { extendedHours: true });
+                    onClose();
+                  }}
+                  className="w-full rounded-full bg-up py-3.5 text-[15px] font-semibold text-black hover:brightness-110 cursor-pointer"
+                >
+                  {t("orderSheet.setLimitPriceButton")}
+                </button>
+
+                <div className="flex flex-col gap-1.5 rounded-2xl border border-border-soft px-4 py-3.5">
+                  <button
+                    disabled={!canQueue}
+                    onClick={handleQueue}
+                    className={clsx(
+                      "w-full rounded-full py-3 text-[14px] font-semibold cursor-pointer",
+                      canQueue ? "bg-surface-2 text-ink hover:bg-surface-3" : "bg-surface-3 text-ink-faint cursor-not-allowed",
+                    )}
+                  >
+                    {t("orderSheet.queueForOpeningButton")}
+                  </button>
+                  {canQueue ? (
+                    <p className="text-[11px] leading-relaxed text-ink-faint">
+                      {t("orderSheet.queueWholeShareNote", { quantity: queueShares, amount: formatCurrency(queueShares * stock.price) })}
+                    </p>
+                  ) : (
+                    <p className="text-[11px] font-medium text-down">{t("orderSheet.queueNeedsMoreForOneShare")}</p>
+                  )}
+                  {canQueue && session.nextRegularOpen !== null && (
+                    <p className="text-[11px] text-ink-faint">
+                      {t("orderSheet.nextEligibleSessionLabel", { when: formatSessionTime(session.nextRegularOpen) })}
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {(session.status === "closed" || session.status === "holiday") && (
+              <>
+                <p className="text-[13px] leading-relaxed text-ink-dim">
+                  {t(
+                    session.status === "holiday" ? "orderSheet.sessionChoiceBodyClosedHoliday" : "orderSheet.sessionChoiceBodyClosed",
+                    { name: session.holidayName ?? "" },
+                  )}
+                </p>
+                {session.nextRegularOpen !== null && (
+                  <p className="text-[13px] font-medium text-ink">
+                    {t("orderSheet.nextEligibleSessionLabel", { when: formatSessionTime(session.nextRegularOpen) })}
+                  </p>
+                )}
+                <p className="text-[11px] leading-relaxed text-ink-faint">{t("orderSheet.notAFillPromise")}</p>
+
+                <button
+                  disabled={!canQueue}
+                  onClick={handleQueue}
+                  className={clsx(
+                    "w-full rounded-full py-3.5 text-[15px] font-semibold cursor-pointer",
+                    canQueue ? "bg-up text-black hover:brightness-110" : "bg-surface-3 text-ink-faint cursor-not-allowed",
+                  )}
+                >
+                  {t(side === "buy" ? "orderSheet.queueBuyButton" : "orderSheet.queueSellButton")}
+                </button>
+                {canQueue ? (
+                  <p className="text-[11px] leading-relaxed text-ink-faint">
+                    {t("orderSheet.queueWholeShareNote", { quantity: queueShares, amount: formatCurrency(queueShares * stock.price) })}
+                  </p>
+                ) : (
+                  <p className="text-[11px] font-medium text-down">{t("orderSheet.queueNeedsMoreForOneShare")}</p>
+                )}
+              </>
+            )}
+
+            {session.status !== "halted" && session.status !== "unavailable" && (
+              <button
+                onClick={() => {
+                  onSwitchToPriceRule?.(side);
+                  onClose();
+                }}
+                className="self-start text-[13px] font-semibold text-brand-light hover:brightness-125 cursor-pointer"
+              >
+                {t("orderSheet.useDifferentPriceOrDate")}
+              </button>
+            )}
+
+            {submitError && <p className="text-[12px] font-medium text-down">{submitError}</p>}
+
+            <button
+              onClick={() => setStep("entry")}
+              className="w-full rounded-full py-3 text-[14px] font-semibold text-ink-dim hover:bg-surface-2 cursor-pointer"
+            >
+              {t("common.back")}
+            </button>
+          </div>
+        )}
+
+        {step === "queued" && (
+          <div className="flex flex-col items-center gap-4 px-6 py-12 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-up-soft">
+              <FlaskConical size={26} className="text-up" />
+            </div>
+            <div>
+              <div className="text-lg font-semibold text-ink">{t("orderSheet.orderQueuedTitle")}</div>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-ink-faint">
+                {t(side === "buy" ? "orderSheet.orderQueuedBodyBuy" : "orderSheet.orderQueuedBodySell", {
+                  quantity: queueShares,
+                  symbol: stock.symbol,
+                })}
+              </p>
+            </div>
+            {queuedOrder && <ExplainRuleButton order={queuedOrder} />}
+            <button
+              onClick={() => {
+                onClose();
+                navigate("/price-rules");
+              }}
+              className="text-[13px] font-semibold text-brand-light hover:brightness-125 cursor-pointer"
+            >
+              {t("priceRules.viewMyRules")}
+            </button>
+            <button
+              onClick={onClose}
+              className="mt-1 w-full rounded-full bg-surface-2 py-3.5 text-[15px] font-semibold text-ink hover:bg-surface-3 cursor-pointer"
+            >
+              {t("common.done")}
+            </button>
           </div>
         )}
 
