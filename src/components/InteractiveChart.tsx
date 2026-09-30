@@ -8,8 +8,9 @@ import {
 } from "react";
 import type { AssetCategory, PricePoint, Range } from "../types";
 import { useLocale } from "../context/LocaleContext";
-import { getMarketSession, type SessionStatus } from "../lib/marketSession";
+import type { SessionStatus } from "../lib/marketSession";
 import { pickAxisIndices, formatAxisTick } from "../lib/chartAxis";
+import { computeSessionRuns } from "../lib/chartSessionBands";
 
 export interface ChartReferenceLine {
   value: number;
@@ -140,29 +141,19 @@ export function InteractiveChart({
 
     // Session shading — only meaningful for a single-day intraday view of an
     // instrument that actually has sessions (equities/funds; crypto is
-    // always "open", so no bands are drawn for it). Every point is
-    // classified by getMarketSession using THAT point's own timestamp, per
-    // spec — never "today's" status applied retroactively to older points.
+    // always "open", so no bands are drawn for it). Grouping is delegated to
+    // computeSessionRuns (lib/chartSessionBands.ts), a pure index-based
+    // function tested independently against DST-transition and early-close
+    // fixtures — this just converts its runs to pixel coordinates.
     const bands: { x1: number; x2: number; fill: string }[] = [];
     if (range === "1D" && sessionCategory && sessionCategory !== "crypto") {
-      let runStart = 0;
-      let runStatus = getMarketSession(sessionCategory, { now: new Date(data[0].t), symbol: sessionSymbol }).status;
-      const flush = (endIdx: number, status: SessionStatus) => {
-        const fill = SESSION_BAND_FILL[status];
-        if (!fill) return;
-        const x1 = runStart === 0 ? 0 : (pts[runStart - 1].x + pts[runStart].x) / 2;
-        const x2 = endIdx === pts.length - 1 ? width : (pts[endIdx].x + pts[endIdx + 1].x) / 2;
+      for (const run of computeSessionRuns(data, sessionCategory, sessionSymbol)) {
+        const fill = SESSION_BAND_FILL[run.status];
+        if (!fill) continue;
+        const x1 = run.startIndex === 0 ? 0 : (pts[run.startIndex - 1].x + pts[run.startIndex].x) / 2;
+        const x2 = run.endIndex === pts.length - 1 ? width : (pts[run.endIndex].x + pts[run.endIndex + 1].x) / 2;
         bands.push({ x1, x2, fill });
-      };
-      for (let i = 1; i < data.length; i++) {
-        const status = getMarketSession(sessionCategory, { now: new Date(data[i].t), symbol: sessionSymbol }).status;
-        if (status !== runStatus) {
-          flush(i - 1, runStatus);
-          runStart = i;
-          runStatus = status;
-        }
       }
-      flush(data.length - 1, runStatus);
     }
 
     // Day-boundary separators for a multi-day intraday view (1W) — a thin
