@@ -291,6 +291,58 @@ function findSessionDay(fromIso: string, notBeforeMs: number, maxDays = 20): Day
   return null;
 }
 
+/** Searches backward (bounded) from the day before `fromIso` for the most recent prior trading day — the mirror of findSessionDay, used to find "yesterday's" (or the last trading day's) full session when the market is currently closed. */
+function findPreviousSessionDay(fromIso: string, maxDays = 20): DaySessions | null {
+  let cursor = addCalendarDays(
+    { year: Number(fromIso.slice(0, 4)), month: Number(fromIso.slice(5, 7)), day: Number(fromIso.slice(8, 10)) },
+    -1,
+  );
+  for (let i = 0; i < maxDays; i++) {
+    const iso = `${String(cursor.year).padStart(4, "0")}-${String(cursor.month).padStart(2, "0")}-${String(cursor.day).padStart(2, "0")}`;
+    if (!isWithinCoverage(iso)) return null;
+    const weekday = getZonedParts(new Date(Date.UTC(cursor.year, cursor.month - 1, cursor.day, 12)), US_EQUITY_TIME_ZONE).weekday;
+    const day = computeDaySessions(iso, weekday);
+    if (day.isTradingDay) return day;
+    cursor = addCalendarDays(cursor, -1);
+  }
+  return null;
+}
+
+export interface OneDayWindow {
+  isoDate: string;
+  /** Pre-market start, in UTC ms. */
+  start: number;
+  /** After-hours end, in UTC ms — or `now` when `isComplete` is false (today's session is still under way). */
+  end: number;
+  /** False only when this is today's still-in-progress session — `end` is `now`, not the real after-hours close. */
+  isComplete: boolean;
+}
+
+/**
+ * Which single trading day's full pre-market-through-after-hours window a
+ * "1D" chart should render, so its data always covers real session
+ * boundaries rather than an arbitrary "last 6.5 hours" — the current
+ * trading day if one is already under way, otherwise the most recently
+ * completed trading day (so the chart still shows something meaningful over
+ * a weekend, holiday, or before pre-market opens). Returns null when the
+ * calendar can't establish this (outside CALENDAR_COVERAGE). Not meaningful
+ * for crypto (no sessions) — callers should use a plain rolling 24h window
+ * for that category instead.
+ */
+export function resolveOneDayWindow(now: Date): OneDayWindow | null {
+  const todayIso = zonedIsoDate(now, US_EQUITY_TIME_ZONE);
+  if (!isWithinCoverage(todayIso)) return null;
+  const asOf = now.getTime();
+  const todayWeekday = getZonedParts(now, US_EQUITY_TIME_ZONE).weekday;
+  const today = computeDaySessions(todayIso, todayWeekday);
+  if (today.isTradingDay && asOf >= today.preMarketStart) {
+    return { isoDate: todayIso, start: today.preMarketStart, end: Math.min(asOf, today.afterHoursEnd), isComplete: asOf >= today.afterHoursEnd };
+  }
+  const prev = findPreviousSessionDay(todayIso);
+  if (!prev) return null;
+  return { isoDate: prev.isoDate, start: prev.preMarketStart, end: prev.afterHoursEnd, isComplete: true };
+}
+
 export interface GetMarketSessionOptions {
   now?: Date;
   /** Checked against the dev-only halt registry when no explicit override is given. */

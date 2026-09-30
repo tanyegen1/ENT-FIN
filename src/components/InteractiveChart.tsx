@@ -6,15 +6,27 @@ import {
   useRef,
   useState,
 } from "react";
-import type { PricePoint } from "../types";
+import type { AssetCategory, PricePoint, Range } from "../types";
 import { useLocale } from "../context/LocaleContext";
+import { getMarketSession, type SessionStatus } from "../lib/marketSession";
+import { pickAxisIndices, formatAxisTick } from "../lib/chartAxis";
 
 interface InteractiveChartProps {
   data: PricePoint[];
   positive: boolean;
   height?: number;
   onScrub?: (point: PricePoint | null, index: number | null) => void;
+  /** Enables bottom x-axis tick labels formatted for this range. Omit for a chart with no fixed range semantics (e.g. the portfolio-value chart, which isn't tied to one instrument). */
+  range?: Range;
+  /** Enables per-point pre-market/regular/after-hours background shading for range === "1D" — every point is classified by the session that applied AT ITS OWN timestamp, never "today's" session. Omit (or pass "crypto") to skip shading — crypto has no sessions. */
+  sessionCategory?: AssetCategory;
+  sessionSymbol?: string;
 }
+
+const SESSION_BAND_FILL: Partial<Record<SessionStatus, string>> = {
+  "pre-market": "var(--color-brand-soft)",
+  "after-hours": "var(--color-session-after-soft)",
+};
 
 function buildSmoothPath(points: { x: number; y: number }[]): string {
   if (points.length === 0) return "";
@@ -36,8 +48,11 @@ export function InteractiveChart({
   positive,
   height = 260,
   onScrub,
+  range,
+  sessionCategory,
+  sessionSymbol,
 }: InteractiveChartProps) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(320);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -54,25 +69,87 @@ export function InteractiveChart({
     return () => ro.disconnect();
   }, []);
 
-  const { linePath, areaPath, points, min, max } = useMemo(() => {
+  const showAxis = range !== undefined;
+  const axisHeight = showAxis ? 20 : 0;
+  const plotHeight = height - axisHeight;
+
+  const { linePath, areaPath, points, min, max, bands, daySeparators, axisTicks } = useMemo(() => {
     if (data.length === 0) {
-      return { linePath: "", areaPath: "", points: [], min: 0, max: 0 };
+      return { linePath: "", areaPath: "", points: [] as { x: number; y: number }[], min: 0, max: 0, bands: [], daySeparators: [], axisTicks: [] };
     }
     const prices = data.map((d) => d.price);
     const min = Math.min(...prices);
     const max = Math.max(...prices);
-    const range = max - min || 1;
-    const pad = height * 0.12;
-    const usable = height - pad * 2;
+    const priceRange = max - min || 1;
+    const pad = plotHeight * 0.12;
+    const usable = plotHeight - pad * 2;
     const stepX = width / (data.length - 1 || 1);
     const pts = data.map((d, i) => ({
       x: i * stepX,
-      y: pad + usable - ((d.price - min) / range) * usable,
+      y: pad + usable - ((d.price - min) / priceRange) * usable,
     }));
     const line = buildSmoothPath(pts);
-    const area = `${line} L${pts[pts.length - 1].x},${height} L0,${height} Z`;
-    return { linePath: line, areaPath: area, points: pts, min, max };
-  }, [data, width, height]);
+    const area = `${line} L${pts[pts.length - 1].x},${plotHeight} L0,${plotHeight} Z`;
+
+    // Session shading — only meaningful for a single-day intraday view of an
+    // instrument that actually has sessions (equities/funds; crypto is
+    // always "open", so no bands are drawn for it). Every point is
+    // classified by getMarketSession using THAT point's own timestamp, per
+    // spec — never "today's" status applied retroactively to older points.
+    const bands: { x1: number; x2: number; fill: string }[] = [];
+    if (range === "1D" && sessionCategory && sessionCategory !== "crypto") {
+      let runStart = 0;
+      let runStatus = getMarketSession(sessionCategory, { now: new Date(data[0].t), symbol: sessionSymbol }).status;
+      const flush = (endIdx: number, status: SessionStatus) => {
+        const fill = SESSION_BAND_FILL[status];
+        if (!fill) return;
+        const x1 = runStart === 0 ? 0 : (pts[runStart - 1].x + pts[runStart].x) / 2;
+        const x2 = endIdx === pts.length - 1 ? width : (pts[endIdx].x + pts[endIdx + 1].x) / 2;
+        bands.push({ x1, x2, fill });
+      };
+      for (let i = 1; i < data.length; i++) {
+        const status = getMarketSession(sessionCategory, { now: new Date(data[i].t), symbol: sessionSymbol }).status;
+        if (status !== runStatus) {
+          flush(i - 1, runStatus);
+          runStart = i;
+          runStatus = status;
+        }
+      }
+      flush(data.length - 1, runStatus);
+    }
+
+    // Day-boundary separators for a multi-day intraday view (1W) — a thin
+    // guide at each local-midnight crossing, not a colored band (spec:
+    // "day separators" distinct from session shading, which is 1D-only here).
+    const daySeparators: number[] = [];
+    if (range === "1W") {
+      let lastDay = new Date(data[0].t).toDateString();
+      for (let i = 1; i < data.length; i++) {
+        const day = new Date(data[i].t).toDateString();
+        if (day !== lastDay) {
+          daySeparators.push((pts[i - 1].x + pts[i].x) / 2);
+          lastDay = day;
+        }
+      }
+    }
+
+    // Dedupe consecutive identical labels (e.g. several 5-minute points
+    // that all still round to the same hour) rather than printing the same
+    // tick twice in a row — this naturally thins ticks down to real
+    // boundaries for a narrow window instead of looking broken/redundant.
+    const axisTicks: { x: number; label: string }[] = [];
+    if (showAxis) {
+      let lastLabel: string | null = null;
+      for (const i of pickAxisIndices(data.length, width < 380 ? 4 : 6)) {
+        const label = formatAxisTick(range!, data[i].t, locale === "tr" ? "tr-TR" : undefined);
+        if (label === lastLabel) continue;
+        axisTicks.push({ x: pts[i].x, label });
+        lastLabel = label;
+      }
+    }
+
+    return { linePath: line, areaPath: area, points: pts, min, max, bands, daySeparators, axisTicks };
+  }, [data, width, plotHeight, range, sessionCategory, sessionSymbol, showAxis, locale]);
 
   const updateFromClientX = useCallback(
     (clientX: number) => {
@@ -130,6 +207,12 @@ export function InteractiveChart({
               <stop offset="100%" stopColor={color} stopOpacity={0} />
             </linearGradient>
           </defs>
+          {bands.map((b, i) => (
+            <rect key={i} x={b.x1} y={0} width={Math.max(0, b.x2 - b.x1)} height={plotHeight} fill={b.fill} />
+          ))}
+          {daySeparators.map((x, i) => (
+            <line key={i} x1={x} y1={0} x2={x} y2={plotHeight} stroke="var(--color-border-soft)" strokeWidth={1} strokeDasharray="2 3" />
+          ))}
           <path d={areaPath} fill={`url(#${gradientId})`} />
           <path
             d={linePath}
@@ -145,7 +228,7 @@ export function InteractiveChart({
                 x1={active.x}
                 y1={0}
                 x2={active.x}
-                y2={height}
+                y2={plotHeight}
                 stroke="var(--color-ink-faint)"
                 strokeWidth={1}
                 strokeDasharray="3 3"
@@ -160,6 +243,19 @@ export function InteractiveChart({
               />
             </g>
           )}
+          {showAxis &&
+            axisTicks.map((tick, i) => (
+              <text
+                key={i}
+                x={Math.min(Math.max(tick.x, 14), width - 14)}
+                y={plotHeight + 15}
+                textAnchor="middle"
+                fontSize={10}
+                fill="var(--color-ink-faint)"
+              >
+                {tick.label}
+              </text>
+            ))}
         </svg>
       )}
       <span className="sr-only">

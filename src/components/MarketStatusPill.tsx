@@ -39,7 +39,7 @@ const VISUALS: Record<SessionStatus, StatusVisual> = {
   unavailable: { Icon: HelpCircle, dot: "bg-ink-faint", bg: "bg-surface-3", fg: "text-ink-dim" },
 };
 
-const STATUS_LABEL_KEY: Record<SessionStatus, string> = {
+export const STATUS_LABEL_KEY: Record<SessionStatus, string> = {
   "pre-market": "marketStatus.preMarket",
   regular: "marketStatus.regular",
   open: "marketStatus.open247",

@@ -3,6 +3,7 @@ import type { PricePoint, Range } from "../types";
 import { getStock } from "./stocks";
 import { getLiveStock } from "./liveQuotes";
 import { fetchRealHistory } from "./historyApi";
+import { resolveOneDayWindow } from "../lib/marketSession";
 
 function hashSeed(str: string): number {
   let h = 1779033703 ^ str.length;
@@ -75,11 +76,42 @@ export function getPriceHistory(
   }
 
   const endPrice = liveEndPrice ?? getStock(symbol)?.price ?? 100;
+  const category = getStock(symbol)?.category ?? "stock";
   const volatility = range === "1D" ? 0.0009 : 0.014;
-  const points = RANGE_POINTS[range];
-  const span = rangeMs(range);
   const now = Date.now();
   const rand = mulberry32(hashSeed(key));
+
+  // A "1D" chart always spans one real trading day's full pre-market-through
+  // after-hours window (crypto: a plain rolling 24h, since it has no
+  // sessions) — never an arbitrary "last 6.5 hours from whenever this
+  // happens to be viewed," which could span across a session boundary or
+  // land nowhere near an actual session at all. Every other range still
+  // spans a plain trailing calendar window ending now.
+  let windowStart: number;
+  let windowEnd: number;
+  if (range === "1D") {
+    if (category === "crypto") {
+      windowEnd = now;
+      windowStart = now - 24 * 60 * 60 * 1000;
+    } else {
+      const win = resolveOneDayWindow(new Date(now));
+      if (win) {
+        windowStart = win.start;
+        windowEnd = win.end;
+      } else {
+        // Outside the maintained calendar's coverage — degrade to a plain
+        // trailing window rather than guessing at session boundaries.
+        windowStart = now - 6.5 * 60 * 60 * 1000;
+        windowEnd = now;
+      }
+    }
+  } else {
+    windowEnd = now;
+    windowStart = now - rangeMs(range);
+  }
+  // One point roughly every 5 minutes for "1D" (matching a real 5-minute
+  // candle's resolution) — every other range keeps its fixed point count.
+  const points = range === "1D" ? Math.max(2, Math.round((windowEnd - windowStart) / (5 * 60 * 1000))) : RANGE_POINTS[range];
 
   let walk: number[];
   if (range === "1D") {
@@ -110,10 +142,14 @@ export function getPriceHistory(
   }
 
   const result: PricePoint[] = walk.map((price, i) => ({
-    t: now - span + (span * i) / (points - 1),
+    t: windowStart + ((windowEnd - windowStart) * i) / (points - 1),
     price: Math.round(price * 100) / 100,
   }));
-  result[result.length - 1] = { t: now, price: endPrice };
+  // Anchored to the window's own end, not necessarily "now" — a closed
+  // market (weekend/holiday) resolves to a past, already-complete trading
+  // day, and its last point should carry that day's real after-hours-close
+  // timestamp rather than falsely appearing to have just updated.
+  result[result.length - 1] = { t: windowEnd, price: endPrice };
 
   if (liveEndPrice === undefined) cache.set(key, result);
   return result;

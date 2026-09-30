@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { getPriceHistory } from "./priceHistory";
 import { getStock, STOCKS } from "./stocks";
+import { US_EQUITY_TIME_ZONE, zonedTimeToUtc } from "../lib/marketSession";
 
 describe("getPriceHistory 1D anchoring", () => {
   it("starts exactly at the stock's previous close and ends exactly at its current price", () => {
@@ -51,5 +52,36 @@ describe("getPriceHistory timestamps", () => {
     const daysThisYear = (now.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000);
     expect(spanDays).toBeGreaterThan(0);
     expect(spanDays).toBeLessThanOrEqual(daysThisYear + 1);
+  });
+});
+
+describe("getPriceHistory 1D session window", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("spans real pre-market-to-now bounds on a trading day, not a fixed 6.5h lookback", async () => {
+    vi.resetModules();
+    const tradingDayNoon = zonedTimeToUtc(2025, 6, 16, 12, 0, US_EQUITY_TIME_ZONE); // Monday, EDT
+    vi.useFakeTimers();
+    vi.setSystemTime(tradingDayNoon);
+    const { getPriceHistory: freshGetPriceHistory } = await import("./priceHistory");
+    const history = freshGetPriceHistory("AAPL", "1D");
+    const preMarketStart = zonedTimeToUtc(2025, 6, 16, 4, 0, US_EQUITY_TIME_ZONE).getTime();
+    expect(history[0].t).toBe(preMarketStart);
+    expect(history[history.length - 1].t).toBe(tradingDayNoon.getTime());
+  });
+
+  it("falls back to the prior trading day's full session on a weekend, rather than a fixed 6.5h lookback from Saturday", async () => {
+    vi.resetModules();
+    const saturdayAfternoon = zonedTimeToUtc(2025, 6, 14, 15, 0, US_EQUITY_TIME_ZONE);
+    vi.useFakeTimers();
+    vi.setSystemTime(saturdayAfternoon);
+    const { getPriceHistory: freshGetPriceHistory } = await import("./priceHistory");
+    const history = freshGetPriceHistory("AAPL", "1D");
+    const fridayPreMarket = zonedTimeToUtc(2025, 6, 13, 4, 0, US_EQUITY_TIME_ZONE).getTime();
+    const fridayAfterHoursEnd = zonedTimeToUtc(2025, 6, 13, 20, 0, US_EQUITY_TIME_ZONE).getTime();
+    expect(history[0].t).toBe(fridayPreMarket);
+    expect(history[history.length - 1].t).toBe(fridayAfterHoursEnd);
   });
 });

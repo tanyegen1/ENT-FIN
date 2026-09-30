@@ -9,6 +9,7 @@ import {
   regularSessionExpiry,
   extendedSessionExpiry,
   regularSessionExpiryOn,
+  resolveOneDayWindow,
   CALENDAR_COVERAGE,
   US_EQUITY_TIME_ZONE,
 } from "./marketSession";
@@ -213,5 +214,42 @@ describe("order-expiry helpers", () => {
     const targetSaturday = etInstant("2025-06-14", 0, 0);
     const expiry = regularSessionExpiryOn(targetSaturday);
     expect(expiry).toBe(etInstant("2025-06-16", 16, 0).getTime());
+  });
+});
+
+describe("resolveOneDayWindow (1D chart span)", () => {
+  it("spans pre-market start through now, mid-session", () => {
+    const now = etInstant(SUMMER_TRADING_DAY, 10, 0);
+    const win = resolveOneDayWindow(now);
+    expect(win).toMatchObject({ isoDate: SUMMER_TRADING_DAY, isComplete: false });
+    expect(win!.start).toBe(etInstant(SUMMER_TRADING_DAY, 4, 0).getTime());
+    expect(win!.end).toBe(now.getTime());
+  });
+
+  it("spans the full pre-market-through-after-hours window once the day is done", () => {
+    const now = etInstant(SUMMER_TRADING_DAY, 22, 0);
+    const win = resolveOneDayWindow(now);
+    expect(win).toMatchObject({ isoDate: SUMMER_TRADING_DAY, isComplete: true });
+    expect(win!.start).toBe(etInstant(SUMMER_TRADING_DAY, 4, 0).getTime());
+    expect(win!.end).toBe(etInstant(SUMMER_TRADING_DAY, 20, 0).getTime());
+  });
+
+  it("falls back to the most recent prior trading day before pre-market opens", () => {
+    // 2am ET Monday, before pre-market — should resolve to the prior Friday's full session.
+    const now = etInstant(SUMMER_TRADING_DAY, 2, 0);
+    const win = resolveOneDayWindow(now);
+    expect(win).toMatchObject({ isoDate: "2025-06-13", isComplete: true });
+    expect(win!.start).toBe(etInstant("2025-06-13", 4, 0).getTime());
+    expect(win!.end).toBe(etInstant("2025-06-13", 20, 0).getTime());
+  });
+
+  it("falls back to Friday's session on a weekend", () => {
+    const saturday = etInstant("2025-06-14", 15, 0);
+    const win = resolveOneDayWindow(saturday);
+    expect(win).toMatchObject({ isoDate: "2025-06-13", isComplete: true });
+  });
+
+  it("returns null outside calendar coverage", () => {
+    expect(resolveOneDayWindow(new Date("2027-01-01T15:00:00Z"))).toBeNull();
   });
 });

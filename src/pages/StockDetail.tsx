@@ -18,7 +18,7 @@ import { RecurringSheet } from "../components/RecurringSheet";
 import { PriceAlertSheet } from "../components/PriceAlertSheet";
 import { PriceRuleSheet } from "../components/PriceRuleSheet";
 import { LiveDot } from "../components/LiveDot";
-import { MarketStatusPill } from "../components/MarketStatusPill";
+import { MarketStatusPill, STATUS_LABEL_KEY } from "../components/MarketStatusPill";
 import { PendingOrdersSection } from "../components/PendingOrdersSection";
 import { StockLogo } from "../components/StockLogo";
 import { InfoTip } from "../components/InfoTip";
@@ -27,6 +27,8 @@ import { ComparisonSection } from "../components/ComparisonSection";
 import { RatingMeter } from "../components/RatingMeter";
 import { whatAmIInvestingIn, whatIsIt, riskFactors } from "../lib/explainers";
 import { formatCompactNumber, formatShares } from "../lib/format";
+import { getMarketSession } from "../lib/marketSession";
+import { describeDataInterval, formatTooltipDateTime } from "../lib/chartAxis";
 import type { PricePoint, Range } from "../types";
 
 // React Router keeps the same StockDetail instance mounted when the :symbol
@@ -46,7 +48,7 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
   const stock = useStock(symbol.toUpperCase());
   const { getHolding, isWatched, toggleWatchlist } = usePortfolio();
   const { plans } = useRecurring();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const { formatDisplay } = useCurrency();
   const navigate = useNavigate();
   const [range, setRange] = useState<Range>("1D");
@@ -57,6 +59,7 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
   const [recurringOpen, setRecurringOpen] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
   const [priceRuleConfig, setPriceRuleConfig] = useState<{ side: "buy" | "sell"; extendedHours?: boolean } | null>(null);
+  const [showExtendedHours, setShowExtendedHours] = useState(false);
 
   const history = usePriceHistory(
     stock?.symbol ?? symbol.toUpperCase(),
@@ -76,6 +79,22 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
   const diff = displayPrice - baseline;
   const diffPercent = baseline !== 0 ? (diff / baseline) * 100 : 0;
   const positive = diff >= 0;
+
+  // Extended-hours pre-market/after-hours points are only ever shown when
+  // explicitly toggled on (spec: "add a Show extended hours toggle" — off by
+  // default so the regular session's shape stays the easy-to-read default).
+  // Crypto has no sessions, so its chart is never filtered this way.
+  const canToggleExtendedHours = range === "1D" && stock.category !== "crypto";
+  const regularOnlyHistory =
+    canToggleExtendedHours && !showExtendedHours
+      ? history.filter((p) => getMarketSession(stock.category, { now: new Date(p.t), symbol: stock.symbol }).status === "regular")
+      : history;
+  // Never collapse to an empty/near-empty chart just because the regular
+  // session hasn't started yet today (e.g. still pre-market) — fall back to
+  // showing everything available rather than a blank chart.
+  const displayedHistory = regularOnlyHistory.length >= 2 ? regularOnlyHistory : history;
+  const scrubSession = scrub ? getMarketSession(stock.category, { now: new Date(scrub.t), symbol: stock.symbol }) : null;
+  const dataInterval = describeDataInterval(displayedHistory);
 
   const stats: { label: string; value: string; definition: string }[] = [
     { label: t("stockDetail.marketCap"), value: formatDisplay(stock.marketCap, { compact: true }), definition: t("glossary.marketCap") },
@@ -180,15 +199,63 @@ function StockDetailForSymbol({ symbol }: { symbol: string }) {
           <div className="mt-1.5">
             <PriceChange amount={diff} percent={diffPercent} size="md" formatAmount={formatDisplay} />
           </div>
+          {scrub && (
+            <div className="mt-1 text-[12px] text-ink-faint">
+              {formatTooltipDateTime(scrub.t, locale === "tr" ? "tr-TR" : undefined)}
+              {scrubSession && ` · ${t(STATUS_LABEL_KEY[scrubSession.status])}`}
+            </div>
+          )}
         </div>
 
         <div className="-mx-4 mt-4 lg:-mx-6">
-          <InteractiveChart data={history} positive={positive} height={220} onScrub={(p) => setScrub(p)} />
+          <InteractiveChart
+            data={displayedHistory}
+            positive={positive}
+            height={220}
+            onScrub={(p) => setScrub(p)}
+            range={range}
+            sessionCategory={stock.category}
+            sessionSymbol={stock.symbol}
+          />
         </div>
 
         <div className="mt-4">
           <RangeTabs value={range} onChange={setRange} positive={positive} />
         </div>
+
+        <div className="mt-2 flex items-center justify-between gap-2">
+          {dataInterval && (
+            <span className="text-[11px] text-ink-faint">{t(dataInterval.key, dataInterval.vars)}</span>
+          )}
+          {canToggleExtendedHours && (
+            <label className="flex items-center gap-1.5 text-[11px] font-medium text-ink-faint">
+              <input
+                type="checkbox"
+                checked={showExtendedHours}
+                onChange={(e) => setShowExtendedHours(e.target.checked)}
+                className="h-3.5 w-3.5 accent-brand"
+              />
+              {t("chart.showExtendedHours")}
+            </label>
+          )}
+        </div>
+
+        {canToggleExtendedHours && showExtendedHours && (
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-ink-faint">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: "var(--color-brand-soft)" }} />
+              {t("chart.legendPreMarket")}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-sm border border-border-soft" />
+              {t("chart.legendRegular")}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: "var(--color-session-after-soft)" }} />
+              {t("chart.legendAfterHours")}
+            </span>
+          </div>
+        )}
 
         {/* Confidence bar — only for the handful of symbols with weekly analyst coverage */}
         {insight && (
