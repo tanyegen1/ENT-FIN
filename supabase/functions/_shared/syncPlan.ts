@@ -49,3 +49,23 @@ export function advanceAfterPage(state: ResumeState, nextCursor: string | null):
 export function isSyncComplete(state: ResumeState): boolean {
   return state.currentCombo === null;
 }
+
+/**
+ * A single page from Massive/Polygon can — rarely, e.g. mid corporate-action
+ * transition — contain two rows that resolve to the same provider_id
+ * (composite_figi/share_class_figi/cik/ticker fallback chain in
+ * classify.ts). Postgres' `ON CONFLICT DO UPDATE` refuses to update the
+ * same row twice within one statement ("command cannot affect row a second
+ * time"), so a page-local duplicate must be collapsed before staging it —
+ * never silently dropped without landing at least one copy, and never
+ * split across two separate upsert calls (that would risk one succeeding
+ * and the other failing, an inconsistency this staged import is designed
+ * to avoid). Keeps the LAST occurrence for a given id, since a duplicate
+ * within one page is most often an old/new pair where the later entry in
+ * the response is the more current one.
+ */
+export function dedupeByProviderId<T extends { provider_id: string }>(rows: T[]): T[] {
+  const byId = new Map<string, T>();
+  for (const row of rows) byId.set(row.provider_id, row);
+  return [...byId.values()];
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { advanceAfterPage, buildFullComboQueue, initialResumeState, isSyncComplete, SYNC_EXCHANGES, SYNC_TYPES } from "./syncPlan.ts";
+import { advanceAfterPage, buildFullComboQueue, dedupeByProviderId, initialResumeState, isSyncComplete, SYNC_EXCHANGES, SYNC_TYPES } from "./syncPlan.ts";
 
 describe("buildFullComboQueue", () => {
   it("covers every exchange x type pair exactly once", () => {
@@ -60,5 +60,27 @@ describe("resumable sync state machine", () => {
     const reloaded: typeof state = JSON.parse(JSON.stringify(state));
     const next = advanceAfterPage(reloaded, null); // that combo's last page
     expect(next.currentCombo).toEqual(buildFullComboQueue()[1]);
+  });
+});
+
+describe("dedupeByProviderId", () => {
+  it("leaves a batch with no duplicates unchanged", () => {
+    const rows = [{ provider_id: "a", n: 1 }, { provider_id: "b", n: 2 }];
+    expect(dedupeByProviderId(rows)).toEqual(rows);
+  });
+
+  it("collapses duplicate provider_ids within one page, keeping the last occurrence", () => {
+    const rows = [
+      { provider_id: "a", n: 1 },
+      { provider_id: "b", n: 2 },
+      { provider_id: "a", n: 3 }, // same id as the first row, later in the page
+    ];
+    const result = dedupeByProviderId(rows);
+    expect(result).toHaveLength(2);
+    expect(result.find((r) => r.provider_id === "a")?.n).toBe(3);
+  });
+
+  it("returns an empty array for an empty batch", () => {
+    expect(dedupeByProviderId([])).toEqual([]);
   });
 });

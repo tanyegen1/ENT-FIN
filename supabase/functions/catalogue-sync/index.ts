@@ -22,7 +22,7 @@ import { handleCorsPreflight, jsonResponse } from "../_shared/cors.ts";
 import { createAdminClient, getMassiveApiKey } from "../_shared/supabaseAdmin.ts";
 import { fetchTickersPage, MassiveApiError } from "../_shared/massiveClient.ts";
 import { normalizeTickerRef } from "../_shared/classify.ts";
-import { advanceAfterPage, initialResumeState, isSyncComplete, type ResumeState } from "../_shared/syncPlan.ts";
+import { advanceAfterPage, dedupeByProviderId, initialResumeState, isSyncComplete, type ResumeState } from "../_shared/syncPlan.ts";
 
 const TIME_BUDGET_MS = 45_000;
 
@@ -117,24 +117,26 @@ Deno.serve(async (req: Request) => {
       );
       pagesThisInvocation++;
 
-      const rows = page.results
-        .map(normalizeTickerRef)
-        .filter((r): r is NonNullable<typeof r> => r !== null)
-        .map((r) => ({
-          provider: "massive",
-          provider_id: r.providerId,
-          ticker: r.ticker,
-          name: r.name,
-          primary_exchange: r.primaryExchange,
-          security_type: r.securityType,
-          is_adr: r.isAdr,
-          currency: r.currency,
-          active: r.active,
-          cik: r.cik,
-          composite_figi: r.compositeFigi,
-          share_class_figi: r.shareClassFigi,
-          metadata_updated_at: new Date().toISOString(),
-        }));
+      const rows = dedupeByProviderId(
+        page.results
+          .map(normalizeTickerRef)
+          .filter((r): r is NonNullable<typeof r> => r !== null)
+          .map((r) => ({
+            provider: "massive",
+            provider_id: r.providerId,
+            ticker: r.ticker,
+            name: r.name,
+            primary_exchange: r.primaryExchange,
+            security_type: r.securityType,
+            is_adr: r.isAdr,
+            currency: r.currency,
+            active: r.active,
+            cik: r.cik,
+            composite_figi: r.compositeFigi,
+            share_class_figi: r.shareClassFigi,
+            metadata_updated_at: new Date().toISOString(),
+          })),
+      );
       seenThisInvocation += rows.length;
 
       if (rows.length > 0) {
