@@ -5,6 +5,7 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   Banknote,
+  Beaker,
   Bell,
   ChevronRight,
   CloudOff,
@@ -70,6 +71,7 @@ export function Account() {
     { icon: Bell, label: t("account.settingsNotifications"), to: "/notifications" },
     { icon: ShieldCheck, label: t("trust.title"), to: "/trust" },
     { icon: HelpCircle, label: t("account.settingsHelp"), to: "/support" },
+    { icon: Beaker, label: t("account.settingsSessionDemo"), to: "/session-demo" },
   ];
 
   const activity: ActivityItem[] = useMemo(() => {

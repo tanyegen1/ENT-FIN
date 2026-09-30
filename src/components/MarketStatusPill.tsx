@@ -16,6 +16,7 @@ import type { AssetCategory } from "../types";
 import type { SessionStatus, SessionWindow } from "../lib/marketSession";
 import { US_EQUITY_TIME_ZONE, formatInZone } from "../lib/marketSession";
 import { useMarketSessionState } from "../hooks/useMarketSessionState";
+import { describeSessionSubtext } from "../lib/sessionCopy";
 import { useLocale } from "../context/LocaleContext";
 
 interface StatusVisual {
@@ -28,7 +29,7 @@ interface StatusVisual {
 // Icon shape carries the meaning as much as color does — never rely on
 // color alone (a colorblind user, or a black & white screenshot, still
 // gets the right answer from the icon + text).
-const VISUALS: Record<SessionStatus, StatusVisual> = {
+export const VISUALS: Record<SessionStatus, StatusVisual> = {
   "pre-market": { Icon: Sunrise, dot: "bg-brand-light", bg: "bg-brand-soft", fg: "text-brand-light" },
   regular: { Icon: TrendingUp, dot: "bg-session-open", bg: "bg-session-open-soft", fg: "text-session-open" },
   open: { Icon: InfinityIcon, dot: "bg-session-open", bg: "bg-session-open-soft", fg: "text-session-open" },
@@ -49,15 +50,6 @@ export const STATUS_LABEL_KEY: Record<SessionStatus, string> = {
   halted: "marketStatus.halted",
   unavailable: "marketStatus.unavailable",
 };
-
-function formatDuration(ms: number, t: (path: string, vars?: Record<string, string | number>) => string): string {
-  const totalMinutes = Math.round(ms / 60000);
-  if (totalMinutes < 1) return t("marketStatus.durationLessThanMinute");
-  if (totalMinutes < 60) return t("marketStatus.durationMinutes", { minutes: totalMinutes });
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return t("marketStatus.durationHours", { hours, minutes });
-}
 
 interface MarketStatusPillProps {
   category: AssetCategory;
@@ -82,33 +74,7 @@ export function MarketStatusPill({ category, symbol, compact, iconOnly, classNam
   const visual = VISUALS[session.status];
   const dateLocale = locale === "tr" ? "tr-TR" : undefined;
   const label = t(STATUS_LABEL_KEY[session.status]);
-
-  const subtext = (() => {
-    if (session.status === "halted") return t("marketStatus.haltedReason", { reason: session.haltedReason ?? "" });
-    if (session.status === "unavailable") return t("marketStatus.unavailableDetail");
-    if (session.status === "open") return t("marketStatus.open247Note");
-    if (session.status === "pre-market" && session.nextTransition) {
-      return t("marketStatus.opensIn", { duration: formatDuration(session.nextTransition.at - session.asOf, t) });
-    }
-    if (session.status === "regular" && session.nextTransition) {
-      return t("marketStatus.closesIn", { duration: formatDuration(session.nextTransition.at - session.asOf, t) });
-    }
-    if (session.status === "after-hours") return t("marketStatus.afterHoursNote");
-    if ((session.status === "closed" || session.status === "holiday") && session.nextRegularOpen !== null) {
-      const when = new Date(session.nextRegularOpen).toLocaleString(dateLocale, {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        timeZoneName: "short",
-      });
-      return session.status === "holiday"
-        ? t("marketStatus.holidayNextSession", { name: session.holidayName ?? "", when })
-        : t("marketStatus.closedNextSession", { when });
-    }
-    return null;
-  })();
+  const subtext = describeSessionSubtext(session, t, dateLocale);
 
   const handleOpen = (e: MouseEvent) => {
     // Stops a parent <Link> (e.g. a watchlist row) from also navigating

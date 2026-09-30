@@ -34,6 +34,7 @@ import { ComparePage } from "./pages/ComparePage";
 import { PriceRulesPage } from "./pages/PriceRulesPage";
 import { LessonsPage } from "./pages/LessonsPage";
 import { TrustPage } from "./pages/TrustPage";
+import { SessionDemoPage } from "./pages/SessionDemoPage";
 import { Login } from "./pages/Login";
 import { Onboarding } from "./pages/Onboarding";
 import { Logo } from "./components/Logo";
@@ -88,6 +89,7 @@ function AppRoutes() {
                         <Route path="/price-rules" element={<PriceRulesPage />} />
                         <Route path="/lessons" element={<LessonsPage />} />
                         <Route path="/trust" element={<TrustPage />} />
+                        <Route path="/session-demo" element={<SessionDemoPage />} />
                       </Route>
                     </Routes>
                   </ChatProvider>
