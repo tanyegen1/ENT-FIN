@@ -100,7 +100,7 @@ export function ChartToolsSheet({ state, onChange, onClose, availability }: Char
           exit={{ opacity: 0, y: 40, scale: 0.98 }}
           transition={SHEET_SPRING}
         >
-          <div className="flex items-center justify-between border-b border-border-soft px-4 py-3">
+          <div className="flex shrink-0 items-center justify-between border-b border-border-soft px-4 py-3">
             <span className="text-[15px] font-semibold text-ink">{t("chart.toolsSheetTitle")}</span>
             <button
               onClick={onClose}
@@ -111,7 +111,7 @@ export function ChartToolsSheet({ state, onChange, onClose, availability }: Char
             </button>
           </div>
 
-          <div className="flex flex-col gap-1 overflow-y-auto px-2 py-2">
+          <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2 py-2">
             <ToolRow
               label={t("chart.toolHighLow")}
               detail={t("chart.toolHighLowDetail")}

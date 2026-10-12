@@ -93,7 +93,7 @@ export function CashSheet({ mode, onClose }: CashSheetProps) {
         exit={{ opacity: 0, y: 40, scale: 0.98 }}
         transition={SHEET_SPRING}
       >
-        <div className="flex items-center justify-between border-b border-border-soft px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between border-b border-border-soft px-4 py-3">
           <span className="text-[15px] font-semibold text-ink">
             {step === "success"
               ? mode === "deposit"
@@ -114,6 +114,7 @@ export function CashSheet({ mode, onClose }: CashSheetProps) {
 
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
+            className="flex min-h-0 flex-1 flex-col overflow-y-auto"
             key={step}
             initial={{ opacity: 0, x: 16 }}
             animate={{ opacity: 1, x: 0 }}
@@ -121,7 +122,7 @@ export function CashSheet({ mode, onClose }: CashSheetProps) {
             transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
           >
             {step === "entry" && (
-              <div className="flex flex-col overflow-y-auto">
+              <div className="flex flex-col">
                 <p className="px-4 pt-3 text-[13px] text-ink-faint">{t("cashSheet.simNote")}</p>
                 {displayCurrency === "TRY" && (
                   <p className="px-4 pt-1 text-[12px] text-ink-faint">{t("cashSheet.usdNote")}</p>

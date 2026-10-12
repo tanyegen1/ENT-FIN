@@ -71,7 +71,7 @@ export function LessonSheet({ lessonId, initialStep, onClose, onComplete, onProg
         exit={{ opacity: 0, y: 40, scale: 0.98 }}
         transition={SHEET_SPRING}
       >
-        <div className="flex items-center justify-between border-b border-border-soft px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between border-b border-border-soft px-4 py-3">
           <span className="text-[13px] font-semibold text-ink-faint">{t("lessons.stepOf", { step: step + 1, total: TOTAL_STEPS })}</span>
           <button
             onClick={onClose}
@@ -81,7 +81,7 @@ export function LessonSheet({ lessonId, initialStep, onClose, onComplete, onProg
             <X size={20} />
           </button>
         </div>
-        <div className="h-1 bg-surface-2">
+        <div className="h-1 shrink-0 bg-surface-2">
           <motion.div
             className="h-full bg-brand"
             animate={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
@@ -89,7 +89,7 @@ export function LessonSheet({ lessonId, initialStep, onClose, onComplete, onProg
           />
         </div>
 
-        <div className="overflow-y-auto">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div key={step} {...STEP_TRANSITION} className="flex flex-col gap-4 px-4 py-5">
               {step < 3 && (
@@ -143,7 +143,7 @@ export function LessonSheet({ lessonId, initialStep, onClose, onComplete, onProg
           </AnimatePresence>
         </div>
 
-        <div className="flex items-center gap-2 border-t border-border-soft px-4 py-3">
+        <div className="flex shrink-0 items-center gap-2 border-t border-border-soft px-4 py-3">
           <button
             onClick={onClose}
             className="rounded-full px-4 py-2.5 text-[13px] font-semibold text-ink-faint hover:bg-surface-2 cursor-pointer"

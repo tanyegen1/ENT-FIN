@@ -206,7 +206,7 @@ export function PriceRuleSheet({ stock, initialSide, onClose, onOpenMarketOrder,
         exit={{ opacity: 0, y: 40, scale: 0.98 }}
         transition={SHEET_SPRING}
       >
-        <div className="flex items-center justify-between border-b border-border-soft px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between border-b border-border-soft px-4 py-3">
           <div className="flex flex-col gap-1">
             <span className="text-[15px] font-semibold text-ink">{t("priceRules.sheetTitle")}</span>
             <span className="inline-flex w-fit items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-brand-light">
@@ -225,14 +225,19 @@ export function PriceRuleSheet({ stock, initialSide, onClose, onOpenMarketOrder,
         </div>
 
         {(session.status === "halted" || session.status === "unavailable") && (
-          <div className="mx-4 mt-3 rounded-2xl border border-warn/30 bg-warn-soft px-4 py-3.5">
+          <div className="mx-4 mt-3 shrink-0 rounded-2xl border border-warn/30 bg-warn-soft px-4 py-3.5">
             <p className="text-[13px] font-semibold text-warn">
               {t(session.status === "halted" ? "priceRules.errorInstrumentHalted" : "priceRules.errorSessionUnavailable")}
             </p>
           </div>
         )}
 
-        <div className={clsx("overflow-y-auto", (session.status === "halted" || session.status === "unavailable") && "pointer-events-none opacity-40")}>
+        <div
+          className={clsx(
+            "flex min-h-0 flex-1 flex-col overflow-y-auto",
+            (session.status === "halted" || session.status === "unavailable") && "pointer-events-none opacity-40",
+          )}
+        >
           <AnimatePresence mode="wait" initial={false}>
             <motion.div key={step} {...STEP_TRANSITION}>
               {step === "timing" && (

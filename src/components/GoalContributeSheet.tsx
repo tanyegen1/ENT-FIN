@@ -70,7 +70,7 @@ export function GoalContributeSheet({ goal, onClose }: GoalContributeSheetProps)
         exit={{ opacity: 0, y: 40, scale: 0.98 }}
         transition={SHEET_SPRING}
       >
-        <div className="flex items-center justify-between border-b border-border-soft px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between border-b border-border-soft px-4 py-3">
           <span className="text-[15px] font-semibold text-ink">{t("goals.contributeTitle", { name: goal.name })}</span>
           <button
             onClick={onClose}
@@ -83,6 +83,7 @@ export function GoalContributeSheet({ goal, onClose }: GoalContributeSheetProps)
 
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
+            className="flex min-h-0 flex-1 flex-col overflow-y-auto"
             key={step}
             initial={{ opacity: 0, x: 16 }}
             animate={{ opacity: 1, x: 0 }}
@@ -90,7 +91,7 @@ export function GoalContributeSheet({ goal, onClose }: GoalContributeSheetProps)
             transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
           >
             {step === "entry" && (
-              <div className="flex flex-col overflow-y-auto">
+              <div className="flex flex-col">
                 <p className="px-4 pt-3 text-[13px] text-ink-faint">{t("goals.contributeNote")}</p>
                 <div className="flex flex-col items-center gap-2 px-4 py-8">
                   <div className="text-5xl font-semibold tabular-nums text-ink">${raw}</div>

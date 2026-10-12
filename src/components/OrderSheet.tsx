@@ -203,7 +203,7 @@ export function OrderSheet({ stock, initialSide, onClose, onSwitchToPriceRule }:
         exit={{ opacity: 0, y: 40, scale: 0.98 }}
         transition={SHEET_SPRING}
       >
-        <div className="flex items-center justify-between border-b border-border-soft px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between border-b border-border-soft px-4 py-3">
           <div className="flex flex-col gap-1">
             <span className="text-[15px] font-semibold text-ink">
               {step === "success"
@@ -226,10 +226,10 @@ export function OrderSheet({ stock, initialSide, onClose, onSwitchToPriceRule }:
         </div>
 
         <AnimatePresence mode="wait" initial={false}>
-        <motion.div key={step} {...STEP_TRANSITION}>
+        <motion.div key={step} {...STEP_TRANSITION} className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 
         {step === "entry" && (
-          <div className="flex flex-col overflow-y-auto">
+          <div className="flex flex-col">
             <div className="relative flex px-4 pt-3">
               {(["buy", "sell"] as Side[]).map((s) => (
                 <button
@@ -399,7 +399,7 @@ export function OrderSheet({ stock, initialSide, onClose, onSwitchToPriceRule }:
         )}
 
         {step === "review" && (
-          <div className="flex flex-col overflow-y-auto px-4 pb-6 pt-4">
+          <div className="flex flex-col px-4 pb-6 pt-4">
             <div className="mb-4 flex items-baseline justify-between">
               <span className="text-sm text-ink-faint">
                 {side === "buy" ? t("orderSheet.buy") : t("orderSheet.sell")} · {t("orderSheet.marketOrder")}
